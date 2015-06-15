@@ -29,7 +29,8 @@ func (e *Evaluator) Eval(node Node) (Node, error) {
 	case NodeNum:
 		value = n
 	case NodeIdentifier:
-		value, err := e.env.Lookup(n.String())
+		var err error
+		value, err = e.env.Lookup(n.String())
 		if err != nil {
 			return nil, err
 		}
