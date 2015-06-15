@@ -69,7 +69,8 @@ func (l *Lexer) Run() error {
 		case r == ')':
 			l.stepRune()
 			l.emit(tokRParen)
-		case unicode.IsDigit(r):
+		case r == '+' || r == '-' || unicode.IsDigit(r):
+			l.stepRune() // Allow the leading sign
 			l.emitMatching(tokInt, unicode.IsDigit)
 		case unicode.IsSpace(r):
 			l.stepRune()
