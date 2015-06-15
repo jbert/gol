@@ -26,7 +26,7 @@ func (e *Evaluator) Eval(node Node) (Node, error) {
 	switch n := node.(type) {
 	case NodeList:
 		return e.evalList(n)
-	case NodeNum:
+	case NodeInt:
 		value = n
 	case NodeIdentifier:
 		var err error

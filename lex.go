@@ -11,7 +11,7 @@ type TokType int
 const (
 	tokLParen TokType = iota
 	tokRParen
-	tokNum
+	tokInt
 	tokIdentifier
 	tokSymbol
 )
@@ -22,8 +22,8 @@ func (tt TokType) String() string {
 		return "tokLParen"
 	case tokRParen:
 		return "tokRParen"
-	case tokNum:
-		return "tokNum"
+	case tokInt:
+		return "tokInt"
 	case tokIdentifier:
 		return "tokIdentifier"
 	case tokSymbol:
@@ -70,7 +70,7 @@ func (l *Lexer) Run() error {
 			l.stepRune()
 			l.emit(tokRParen)
 		case unicode.IsDigit(r):
-			l.emitMatching(tokNum, unicode.IsDigit)
+			l.emitMatching(tokInt, unicode.IsDigit)
 		case unicode.IsSpace(r):
 			l.stepRune()
 		case r == '\'':

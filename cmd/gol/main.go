@@ -14,6 +14,10 @@ func main() {
 	}
 	testCases := []testCase{
 		{"1", "1"},
+		{"2", "2"},
+		{"3", "3"},
+		{"0", "0"},
+		{"-1", "-1"},
 		{"(let ((x 1)) x)", "1"},
 	}
 	//	s := `
@@ -48,13 +52,13 @@ func evaluateProgram(prog string) (string, error) {
 		return "", fmt.Errorf("Error parsing: %s\n", parseErr)
 	}
 
-	fmt.Printf("AST: %s\n", nodeTree)
+	//	fmt.Printf("AST: %s\n", nodeTree)
 	e := gol.NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
 	value, err := e.Eval(nodeTree)
 	if err != nil {
 		return "", fmt.Errorf("Error evaluating: %s\n", err)
 	}
-	fmt.Printf("EVAL: %s\n", value)
+	//	fmt.Printf("EVAL: %s\n", value)
 
 	if lexErr != nil {
 		return "", fmt.Errorf("Error lexing: %s\n", lexErr)

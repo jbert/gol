@@ -58,14 +58,14 @@ func (nl NodeList) String() string {
 type nodeAtom struct {
 	tok Token
 }
-type NodeNum struct {
-	value float64
+type NodeInt struct {
+	value int64
 }
 
-func (nn NodeNum) String() string {
-	return fmt.Sprintf("%f", nn.value)
+func (nn NodeInt) String() string {
+	return fmt.Sprintf("%d", nn.value)
 }
-func (nn NodeNum) Value() float64 {
+func (nn NodeInt) Value() int64 {
 	return nn.value
 }
 
@@ -113,12 +113,12 @@ func (p *Parser) parseAtom() (Node, error) {
 		return NodeIdentifier{nodeAtom{tok: tok}}, nil
 	case tokSymbol:
 		return NodeSymbol{nodeAtom{tok: tok}}, nil
-	case tokNum:
-		v, err := strconv.ParseFloat(tok.Value, 64)
+	case tokInt:
+		v, err := strconv.ParseInt(tok.Value, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("Can't parse [%s] as float: %s", tok.Value, err)
 		}
-		return NodeNum{value: v}, nil
+		return NodeInt{value: v}, nil
 	default:
 		panic("Unknown atom type")
 	}
