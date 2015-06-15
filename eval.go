@@ -1,6 +1,9 @@
 package gol
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 type Evaluator struct {
 	in  io.Reader
@@ -9,11 +12,7 @@ type Evaluator struct {
 	env Environment
 }
 
-type Frame map[string]Node
-
-type Environment []Frame
-
-func NewEvaluator(node Node, out io.Writer, in io.Reader, err io.Writer) *Evaluator {
+func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 	return &Evaluator{
 		in:  in,
 		out: out,
@@ -22,7 +21,26 @@ func NewEvaluator(node Node, out io.Writer, in io.Reader, err io.Writer) *Evalua
 	}
 }
 
-func makeDefaultEnvironment() Environment {
-	defEnv := []Frame{}
-	return defEnv
+func (e *Evaluator) Eval(node Node) (Node, error) {
+	var value Node
+	switch n := node.(type) {
+	case NodeList:
+		return e.evalList(n)
+	case NodeNum:
+		value = n
+	case NodeIdentifier:
+		value, err := e.env.Lookup(n.String())
+		if err != nil {
+			return nil, err
+		}
+	case NodeSymbol:
+		value = n
+	default:
+		return nil, fmt.Errorf("Unrecognised node type %T", node)
+	}
+	return value, nil
+}
+
+func (e *Evaluator) evalList(nl NodeList) (Node, error) {
+	return nil, fmt.Errorf("TODO: implement")
 }

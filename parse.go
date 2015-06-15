@@ -1,5 +1,10 @@
 package gol
 
+import (
+	"fmt"
+	"strconv"
+)
+
 type Parser struct {
 	tokens chan Token
 	peek   *Token
@@ -27,30 +32,18 @@ func (p *Parser) stepToken() {
 	p.peek = nil
 }
 
-type ASTType int
-
-const (
-	astList ASTType = iota
-	astSymbol
-	astNum
-)
-
 type Node interface {
-	Type() ASTType
 	String() string
 }
 
-type nodeList struct {
+type NodeList struct {
 	children []Node
 }
 
-func (nl *nodeList) Add(node Node) {
+func (nl *NodeList) Add(node Node) {
 	nl.children = append(nl.children, node)
 }
-func (nl nodeList) Type() ASTType {
-	return astList
-}
-func (nl nodeList) String() string {
+func (nl NodeList) String() string {
 	s := []byte("(")
 	for i, child := range nl.children {
 		if i != 0 {
@@ -62,21 +55,27 @@ func (nl nodeList) String() string {
 	return string(s)
 }
 
-// TODO: break out atom types
 type nodeAtom struct {
 	tok Token
 }
-
-func (na nodeAtom) Type() ASTType {
-	switch na.tok.Type {
-	case tokNum:
-		return astNum
-	case tokSymbol:
-		return astSymbol
-	default:
-		panic("Unknown token type in nodeAtom")
-	}
+type NodeNum struct {
+	value float64
 }
+
+func (nn NodeNum) String() string {
+	return fmt.Sprintf("%f", nn.value)
+}
+func (nn NodeNum) Value() float64 {
+	return nn.value
+}
+
+type NodeIdentifier struct {
+	nodeAtom
+}
+type NodeSymbol struct {
+	nodeAtom
+}
+
 func (na nodeAtom) String() string {
 	return na.tok.Value
 }
@@ -110,10 +109,16 @@ func (p *Parser) parseAtom() (Node, error) {
 		return nil, p.Error("Found L Paren, expected atom")
 	case tokRParen:
 		return nil, p.Error("Found R Paren, expected atom")
+	case tokIdentifier:
+		return NodeIdentifier{nodeAtom{tok: tok}}, nil
 	case tokSymbol:
-		fallthrough
+		return NodeSymbol{nodeAtom{tok: tok}}, nil
 	case tokNum:
-		return nodeAtom{tok: tok}, nil
+		v, err := strconv.ParseFloat(tok.Value, 64)
+		if err != nil {
+			return nil, fmt.Errorf("Can't parse [%s] as float: %s", tok.Value, err)
+		}
+		return NodeNum{value: v}, nil
 	default:
 		panic("Unknown atom type")
 	}
@@ -124,17 +129,17 @@ func (p *Parser) parseList() (Node, error) {
 		return nil, p.Error("Parser logic error - missing L paren at start of list")
 	}
 	p.stepToken()
-	nodeList := nodeList{}
+	NodeList := NodeList{}
 	for {
 		t := p.peekToken()
 		if t.Type == tokRParen {
 			p.stepToken()
-			return nodeList, nil
+			return NodeList, nil
 		}
 		node, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		nodeList.Add(node)
+		NodeList.Add(node)
 	}
 }
