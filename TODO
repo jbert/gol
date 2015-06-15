@@ -1,0 +1,17 @@
+- add int type so we can write simple test cases
+
+- add -ve integers and tests
+
+- add some tests for float
+	- 1.1 should print as 1.1, not 1.1000000
+	- post-process sprintf output !?
+	- rationals?
+
+- add let special form
+
+- work out what an applicable is so we can define addInt (maybe generic addNum?)
+
+- add lambda to define our own applicables
+
+- add some i/o applicable primitives
+
