@@ -8,13 +8,35 @@ import (
 )
 
 func main() {
-	fname := "tt.gol"
-	s := `
-(func (inc (x))
-	(+ 1 x))
-`
+	type testCase struct {
+		code   string
+		result string
+	}
+	testCases := []testCase{
+		{"1", "1"},
+		{"(let ((x 1)) x)", "1"},
+	}
+	//	s := `
+	//(func (inc (x))
+	//	(+ 1 x))
+	//`
 
-	l := gol.NewLexer(fname, s)
+	for i, tc := range testCases {
+		evalStr, err := evaluateProgram(tc.code)
+		if err != nil {
+			fmt.Printf("%d: err [%s] for code: %s\n", i, err, tc.code)
+		}
+		if evalStr != tc.result {
+			fmt.Printf("%d@ wrong result [%s] != [%s] for code: %s\n", i, evalStr, tc.result, tc.code)
+		}
+		fmt.Printf("%d: AOK!\n", i)
+	}
+}
+
+func evaluateProgram(prog string) (string, error) {
+
+	fname := "tt.gol"
+	l := gol.NewLexer(fname, prog)
 	var lexErr error
 	go func() {
 		lexErr = l.Run()
@@ -23,21 +45,20 @@ func main() {
 	p := gol.NewParser(l.Tokens)
 	nodeTree, parseErr := p.Parse()
 	if parseErr != nil {
-		fmt.Printf("Error parsing: %s\n", parseErr)
-		os.Exit(-1)
+		return "", fmt.Errorf("Error parsing: %s\n", parseErr)
 	}
 
 	fmt.Printf("AST: %s\n", nodeTree)
 	e := gol.NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
 	value, err := e.Eval(nodeTree)
 	if err != nil {
-		fmt.Printf("Error evaluating: %s\n", err)
-		os.Exit(-1)
+		return "", fmt.Errorf("Error evaluating: %s\n", err)
 	}
 	fmt.Printf("EVAL: %s\n", value)
 
 	if lexErr != nil {
-		fmt.Printf("Error lexing: %s\n", lexErr)
-		os.Exit(-1)
+		return "", fmt.Errorf("Error lexing: %s\n", lexErr)
 	}
+
+	return value.String(), nil
 }
