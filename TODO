@@ -7,7 +7,13 @@ DONE - add -ve integers and tests
 	- reference the original node
 	- which can in turn reference file, line and column
 
-- add let special form
+- add real test cases as xxx_test
+	- explore go tap?
+
+- test failed let decorate
+	- check file/line/pos info
+
+DONE - add let special form
 
 - add progn special form
 	- implicit progn in let
