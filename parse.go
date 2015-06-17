@@ -53,16 +53,21 @@ type NodeList struct {
 func (nl *NodeList) Add(node Node) {
 	nl.children = append(nl.children, node)
 }
-func (nl NodeList) String() string {
+
+func nodesToString(nodes []Node) string {
 	s := []byte("(")
-	for i, child := range nl.children {
+	for i, n := range nodes {
 		if i != 0 {
 			s = append(s, ' ')
 		}
-		s = append(s, child.String()...)
+		s = append(s, n.String()...)
 	}
 	s = append(s, ')')
 	return string(s)
+}
+
+func (nl NodeList) String() string {
+	return nodesToString(nl.children)
 }
 
 type nodeAtom struct {

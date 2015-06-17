@@ -9,7 +9,6 @@ type Evaluator struct {
 	in  io.Reader
 	out io.Writer
 	err io.Writer
-	env Environment
 }
 
 func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
@@ -17,20 +16,19 @@ func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 		in:  in,
 		out: out,
 		err: err,
-		env: makeDefaultEnvironment(),
 	}
 }
 
-func (e *Evaluator) Eval(node Node) (Node, error) {
+func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	var value Node
 	switch n := node.(type) {
-	case NodeList:
-		return e.evalList(n)
+	case NodeLet:
+		return e.evalLet(n, env)
 	case NodeInt:
 		value = n
 	case NodeIdentifier:
 		var err error
-		value, err = e.env.Lookup(n.String())
+		value, err = env.Lookup(n.String())
 		if err != nil {
 			return nil, err
 		}
@@ -42,6 +40,7 @@ func (e *Evaluator) Eval(node Node) (Node, error) {
 	return value, nil
 }
 
-func (e *Evaluator) evalList(nl NodeList) (Node, error) {
-	return nil, fmt.Errorf("TODO: implement")
+func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {
+	env = env.WithFrame(nl.Bindings)
+	return e.Eval(nl.Body, env)
 }

@@ -1,13 +1,17 @@
-- add int type so we can write simple test cases
+DONE - add int type so we can write simple test cases
 
-- add -ve integers and tests
+DONE - add -ve integers and tests
 
-- add some tests for float
-	- 1.1 should print as 1.1, not 1.1000000
-	- post-process sprintf output !?
-	- rationals?
+- have decorate set up NodeError
+	- e.g. decorateLet
+	- reference the original node
+	- which can in turn reference file, line and column
 
 - add let special form
+
+- add progn special form
+	- implicit progn in let
+		- so add one in decorate if needed
 
 - work out what an applicable is so we can define addInt (maybe generic addNum?)
 

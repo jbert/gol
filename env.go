@@ -6,11 +6,19 @@ type Frame map[string]Node
 
 type Environment []Frame
 
-func makeDefaultEnvironment() Environment {
+func MakeDefaultEnvironment() Environment {
 	defEnv := []Frame{
 	//		Frame{"+": addNum},
 	}
 	return defEnv
+}
+
+func (e Environment) WithFrame(f Frame) Environment {
+	// 'append on the front'
+	// Slow to build, but fast to look up
+	newEnv := []Frame{f}
+	newEnv = append(newEnv, e...)
+	return newEnv
 }
 
 var ErrNotFound = errors.New("Identifier not found")
