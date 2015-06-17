@@ -33,9 +33,16 @@ func (tt TokType) String() string {
 	}
 }
 
+type Position struct {
+	File   string
+	Line   int
+	Column int
+}
+
 type Token struct {
-	Type  TokType
-	Value string
+	Type     TokType
+	Value    string
+	Position Position
 }
 
 func (t Token) String() string {
@@ -48,6 +55,8 @@ type Lexer struct {
 	s      string
 	pos    int
 	start  int
+	line   int
+	col    int
 }
 
 func NewLexer(fname string, data string) *Lexer {
@@ -96,8 +105,19 @@ func (l *Lexer) isEOF() bool {
 }
 
 func (l *Lexer) skipWhitespace() bool {
-	for !l.isEOF() && unicode.IsSpace(l.peekNextRune()) {
-		l.stepRune()
+PEEKING:
+	for !l.isEOF() {
+		next := l.peekNextRune()
+		if next == '\n' {
+			l.line++
+			l.col = 0
+		}
+		if unicode.IsSpace(next) {
+			l.stepRune()
+		} else {
+			break PEEKING
+		}
+
 	}
 	l.start = l.pos
 	return l.isEOF()
@@ -111,6 +131,7 @@ func (l *Lexer) peekNextRune() rune {
 func (l *Lexer) stepRune() {
 	_, size := utf8.DecodeRuneInString(l.s[l.pos:])
 	l.pos += size
+	l.col += size
 }
 
 func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
@@ -121,6 +142,7 @@ func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
 }
 
 func (l *Lexer) emit(tokType TokType) {
-	l.Tokens <- Token{Type: tokType, Value: l.s[l.start:l.pos]}
+	pos := Position{File: l.fname, Line: l.line, Column: l.col}
+	l.Tokens <- Token{Position: pos, Type: tokType, Value: l.s[l.start:l.pos]}
 	l.start = l.pos
 }

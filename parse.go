@@ -32,11 +32,21 @@ func (p *Parser) stepToken() {
 	p.peek = nil
 }
 
+type NodeBase struct {
+	pos Position
+}
+
+func (nb NodeBase) Pos() Position {
+	return nb.pos
+}
+
 type Node interface {
 	String() string
+	Pos() Position
 }
 
 type NodeList struct {
+	NodeBase
 	children []Node
 }
 
@@ -56,9 +66,11 @@ func (nl NodeList) String() string {
 }
 
 type nodeAtom struct {
+	NodeBase
 	tok Token
 }
 type NodeInt struct {
+	NodeBase
 	value int64
 }
 
