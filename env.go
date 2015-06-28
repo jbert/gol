@@ -1,9 +1,6 @@
 package gol
 
-import (
-	"errors"
-	"fmt"
-)
+import "fmt"
 
 type Frame map[string]Node
 
@@ -11,7 +8,10 @@ type Environment []Frame
 
 func MakeDefaultEnvironment() Environment {
 	defEnv := []Frame{
-		Frame{"+": NodeBuiltin{f: addInt, description: "+"}},
+		Frame{
+			"+": NodeBuiltin{f: addInt, description: "+"},
+			"-": NodeBuiltin{f: subInt, description: "-"},
+		},
 	}
 	return defEnv
 }
@@ -24,8 +24,6 @@ func (e Environment) WithFrame(f Frame) Environment {
 	return newEnv
 }
 
-var ErrNotFound = errors.New("Identifier not found")
-
 func (e Environment) Lookup(s string) (Node, error) {
 	for _, f := range []Frame(e) {
 		node, ok := f[s]
@@ -33,7 +31,7 @@ func (e Environment) Lookup(s string) (Node, error) {
 			return node, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, fmt.Errorf("Identifier [%s] not found", s)
 }
 
 type NodeApplicable interface {
@@ -65,4 +63,28 @@ func addInt(nodes []Node) (Node, error) {
 		sum += ni.Value()
 	}
 	return NodeInt{value: sum}, nil
+}
+
+func subInt(nodes []Node) (Node, error) {
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("Arity-error: expected > 0 args")
+	}
+
+	ni, ok := nodes[0].(NodeInt)
+	if !ok {
+		return nil, fmt.Errorf("Non-int passed to subInt")
+	}
+	result := ni.Value()
+	if len(nodes) == 1 {
+		return NodeInt{value: -result}, nil
+	}
+
+	for _, n := range nodes[1:] {
+		ni, ok := n.(NodeInt)
+		if !ok {
+			return nil, fmt.Errorf("Non-int passed to subInt")
+		}
+		result -= ni.Value()
+	}
+	return NodeInt{value: result}, nil
 }
