@@ -2,6 +2,17 @@ DONE - add int type so we can write simple test cases
 
 DONE - add -ve integers and tests
 
+DONE - work out where we should eval let binding bodies
+	- needs to be eval-time so outer bindings work:
+		(let ((+ *))
+			(let ((x (+ 1 2)))
+				x))
+
+DONE - add '+' in default env
+	- add NodeApplicable
+	- no type info (or arity)
+	- just helper funcs
+
 - have decorate set up NodeError
 	- e.g. decorateLet
 	- reference the original node

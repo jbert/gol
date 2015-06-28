@@ -1,6 +1,9 @@
 package gol
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Frame map[string]Node
 
@@ -8,7 +11,7 @@ type Environment []Frame
 
 func MakeDefaultEnvironment() Environment {
 	defEnv := []Frame{
-	//		Frame{"+": addNum},
+		Frame{"+": NodeBuiltin{f: addInt, description: "+"}},
 	}
 	return defEnv
 }
@@ -31,4 +34,35 @@ func (e Environment) Lookup(s string) (Node, error) {
 		}
 	}
 	return nil, ErrNotFound
+}
+
+type NodeApplicable interface {
+	Node
+	Apply(nodes []Node) (Node, error)
+}
+
+type NodeBuiltin struct {
+	NodeBase
+	f           func(nodes []Node) (Node, error)
+	description string
+}
+
+func (nb NodeBuiltin) String() string {
+	return nb.description
+}
+
+func (nb NodeBuiltin) Apply(args []Node) (Node, error) {
+	return nb.f(args)
+}
+
+func addInt(nodes []Node) (Node, error) {
+	var sum int64
+	for _, n := range nodes {
+		ni, ok := n.(NodeInt)
+		if !ok {
+			return nil, fmt.Errorf("Non-int passed to addInt")
+		}
+		sum += ni.Value()
+	}
+	return NodeInt{value: sum}, nil
 }

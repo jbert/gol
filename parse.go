@@ -131,9 +131,14 @@ func (p *Parser) parseAtom() (Node, error) {
 	case tokSymbol:
 		return NodeSymbol{nodeAtom{tok: tok}}, nil
 	case tokInt:
+		// Special case '+' and '-'
+		if tok.Value == "+" || tok.Value == "-" {
+			return NodeIdentifier{nodeAtom{tok: tok}}, nil
+		}
+
 		v, err := strconv.ParseInt(tok.Value, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Can't parse [%s] as float: %s", tok.Value, err)
+			return nil, fmt.Errorf("Can't parse [%s] as integer: %s", tok.Value, err)
 		}
 		return NodeInt{value: v}, nil
 	default:

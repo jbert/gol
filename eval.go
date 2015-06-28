@@ -24,6 +24,8 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	switch n := node.(type) {
 	case NodeLet:
 		return e.evalLet(n, env)
+	case NodeList:
+		return e.evalList(n, env)
 	case NodeInt:
 		value = n
 	case NodeIdentifier:
@@ -43,4 +45,32 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {
 	env = env.WithFrame(nl.Bindings)
 	return e.Eval(nl.Body, env)
+}
+
+func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
+	if len(nl.children) == 0 {
+		return nl, nil // empty list self-evaluates
+	}
+
+	nodes := make([]Node, 0)
+	for _, child := range nl.children {
+		newVal, err := e.Eval(child, env)
+		if err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, newVal)
+
+	}
+
+	applicable, ok := nodes[0].(NodeApplicable)
+	if !ok {
+		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T", nodes[0])
+	}
+
+	node, err := applicable.Apply(nodes[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
 }
