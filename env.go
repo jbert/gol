@@ -36,7 +36,7 @@ func (e Environment) Lookup(s string) (Node, error) {
 
 type NodeApplicable interface {
 	Node
-	Apply(nodes []Node) (Node, error)
+	Apply(e *Evaluator, nodes []Node) (Node, error)
 }
 
 type NodeBuiltin struct {
@@ -49,8 +49,14 @@ func (nb NodeBuiltin) String() string {
 	return nb.description
 }
 
-func (nb NodeBuiltin) Apply(args []Node) (Node, error) {
+func (nb NodeBuiltin) Apply(e *Evaluator, args []Node) (Node, error) {
 	return nb.f(args)
+}
+
+type NodeLambda struct {
+	NodeList
+	Args []Node
+	Body Node
 }
 
 func addInt(nodes []Node) (Node, error) {

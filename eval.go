@@ -34,6 +34,8 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		if err != nil {
 			return nil, err
 		}
+	case NodeLambda:
+		return e.evalLambda(n, env)
 	case NodeSymbol:
 		value = n
 	default:
@@ -53,6 +55,33 @@ func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {
 	}
 	env = env.WithFrame(f)
 	return e.Eval(nl.Body, env)
+}
+
+type NodeProcedure struct {
+	NodeLambda
+	Env Environment
+}
+
+func (e *Evaluator) evalLambda(nl NodeLambda, env Environment) (Node, error) {
+	return NodeProcedure{
+		NodeLambda: nl,
+		Env:        env,
+	}, nil
+}
+
+func (np NodeProcedure) Apply(e *Evaluator, argVals []Node) (Node, error) {
+	if len(argVals) != len(np.Args) {
+		return nil, fmt.Errorf("Arg mismatch")
+	}
+
+	f := Frame{}
+	for i, argVal := range argVals {
+		idStr := np.Args[i].String()
+
+		f[idStr] = argVal
+	}
+	env := np.Env.WithFrame(f)
+	return e.Eval(np.Body, env)
 }
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
@@ -75,7 +104,7 @@ func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
 		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T", nodes[0])
 	}
 
-	node, err := applicable.Apply(nodes[1:])
+	node, err := applicable.Apply(e, nodes[1:])
 	if err != nil {
 		return nil, err
 	}

@@ -50,6 +50,8 @@ func decorateList(n NodeList) (Node, error) {
 		switch id.String() {
 		case "let":
 			return decorateLet(n)
+		case "lambda":
+			return decorateLambda(n)
 		}
 	}
 	children, err := decorateNodes(n.children)
@@ -80,7 +82,11 @@ func decorateLet(n NodeList) (Node, error) {
 		if !ok {
 			return nil, fmt.Errorf("Bad let expression - invalid identifier")
 		}
-		nLet.Bindings[id.String()] = pair.children[1]
+		var err error
+		nLet.Bindings[id.String()], err = Decorate(pair.children[1])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	children, err := decorateNodes(n.children[2:])
@@ -90,4 +96,29 @@ func decorateLet(n NodeList) (Node, error) {
 	// TODO: support implicit progn
 	nLet.Body = children[0]
 	return nLet, nil
+}
+
+func decorateLambda(n NodeList) (Node, error) {
+	if len(n.children) < 3 {
+		return nil, fmt.Errorf("Bad lambda expression - missing args or body")
+	}
+	args, ok := n.children[1].(NodeList)
+	if !ok {
+		return nil, fmt.Errorf("Bad lambda expression - args must be a list")
+	}
+	for _, argNode := range args.children {
+		_, ok := argNode.(NodeIdentifier)
+		if !ok {
+			return nil, fmt.Errorf("Bad lambda expression - arg must be identifier")
+		}
+	}
+	nLambda := NodeLambda{NodeList: n, Args: args.children}
+
+	children, err := decorateNodes(n.children[2:])
+	if err != nil {
+		return nil, err
+	}
+	// TODO: support implicit progn
+	nLambda.Body = children[0]
+	return nLambda, nil
 }

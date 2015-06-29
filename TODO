@@ -13,6 +13,31 @@ DONE - add '+' in default env
 	- no type info (or arity)
 	- just helper funcs
 
+- reorg code
+	- types + methods all in their own file
+
+DONE - lambda
+	- has to carry env with it for eval
+		- eval in env at the time
+		- (let ((a 1))
+			(let ((f (lambda (x) (+ a x))))
+				(let ((a 2))
+					(f 3))))
+
+- check application to regex
+	- (+ (+ 1 2) (+ 2 3))
+	- (let ((f (lambda (x) (+ 1 x))))
+		(f (+ 1 2)))
+
+- string type
+
+- call into go code?
+	- reserve '.' anywhere in identifier
+	(.println "hello, world")
+	(fmt.Printf "hello, world\n")
+	- done by writing out golang src!?
+		- instead of eval
+
 - have decorate set up NodeError
 	- e.g. decorateLet
 	- reference the original node
