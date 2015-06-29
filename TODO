@@ -1,44 +1,25 @@
-DONE - add int type so we can write simple test cases
-
-DONE - add -ve integers and tests
-
-DONE - work out where we should eval let binding bodies
-	- needs to be eval-time so outer bindings work:
-		(let ((+ *))
-			(let ((x (+ 1 2)))
-				x))
-
-DONE - add '+' in default env
-	- add NodeApplicable
-	- no type info (or arity)
-	- just helper funcs
-
-- reorg code
-	- types + methods all in their own file
-
-DONE - lambda
-	- has to carry env with it for eval
-		- eval in env at the time
-		- (let ((a 1))
-			(let ((f (lambda (x) (+ a x))))
-				(let ((a 2))
-					(f 3))))
-
-DONE - check application to redex
-	- (+ (+ 1 2) (+ 2 3))
-	- (let ((f (lambda (x) (+ 1 x))))
-		(f (+ 1 2)))
-
-DONE - progn
-
-DONE - add implicit progn to let+lambda
-
 - variable bindings
 	- define
 		- top level?
 		- internal define?
 		- what are the rules for scheme?
 	- syntactic sugar for functions
+
+- seperate tests to _test files
+	- write repl
+	- write cmdline tool
+	- add some multi-line test cases (define funcs etc)
+	- y combinator!
+	- church numerals
+
+- better numerics
+	- golang types?
+	- scheme numeric tower?
+
+- reorg code
+	- types + methods all in their own file
+
+- pretty-print ast
 
 - call into go code?
 	- reserve '.' anywhere in identifier
@@ -58,8 +39,6 @@ DONE - add implicit progn to let+lambda
 - test failed let decorate
 	- check file/line/pos info
 
-DONE - add let special form
-
 - add progn special form
 	- implicit progn in let
 		- so add one in decorate if needed
@@ -69,4 +48,42 @@ DONE - add let special form
 - add lambda to define our own applicables
 
 - add some i/o applicable primitives
+
+
+--------------------------------
+
+DONE - add let special form
+
+
+DONE - add int type so we can write simple test cases
+
+DONE - add -ve integers and tests
+
+DONE - work out where we should eval let binding bodies
+	- needs to be eval-time so outer bindings work:
+		(let ((+ *))
+			(let ((x (+ 1 2)))
+				x))
+
+DONE - add '+' in default env
+	- add NodeApplicable
+	- no type info (or arity)
+	- just helper funcs
+
+DONE - lambda
+	- has to carry env with it for eval
+		- eval in env at the time
+		- (let ((a 1))
+			(let ((f (lambda (x) (+ a x))))
+				(let ((a 2))
+					(f 3))))
+
+DONE - check application to redex
+	- (+ (+ 1 2) (+ 2 3))
+	- (let ((f (lambda (x) (+ 1 x))))
+		(f (+ 1 2)))
+
+DONE - progn
+
+DONE - add implicit progn to let+lambda
 
