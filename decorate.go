@@ -27,6 +27,18 @@ func Decorate(node Node) (Node, error) {
 	}
 }
 
+func decorateNodes(ns []Node) ([]Node, error) {
+	newNs := make([]Node, 0)
+	for _, n := range ns {
+		newNode, err := Decorate(n)
+		if err != nil {
+			return nil, err
+		}
+		newNs = append(newNs, newNode)
+	}
+	return newNs, nil
+}
+
 func decorateList(n NodeList) (Node, error) {
 	if len(n.children) == 0 {
 		return n, nil
@@ -34,15 +46,17 @@ func decorateList(n NodeList) (Node, error) {
 
 	first := n.children[0]
 	id, ok := first.(NodeIdentifier)
-	if !ok {
-		return n, nil
+	if ok {
+		switch id.String() {
+		case "let":
+			return decorateLet(n)
+		}
 	}
-	switch id.String() {
-	case "let":
-		return decorateLet(n)
-	default:
-		return n, nil
+	children, err := decorateNodes(n.children)
+	if err != nil {
+		return nil, err
 	}
+	return NodeList{NodeBase: n.NodeBase, children: children}, nil
 }
 
 func decorateLet(n NodeList) (Node, error) {
@@ -69,7 +83,11 @@ func decorateLet(n NodeList) (Node, error) {
 		nLet.Bindings[id.String()] = pair.children[1]
 	}
 
+	children, err := decorateNodes(n.children[2:])
+	if err != nil {
+		return nil, err
+	}
 	// TODO: support implicit progn
-	nLet.Body = n.children[2]
+	nLet.Body = children[0]
 	return nLet, nil
 }

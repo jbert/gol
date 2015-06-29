@@ -43,7 +43,15 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 }
 
 func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {
-	env = env.WithFrame(nl.Bindings)
+	f := Frame{}
+	for k, v := range nl.Bindings {
+		var err error
+		f[k], err = e.Eval(v, env)
+		if err != nil {
+			return nil, err
+		}
+	}
+	env = env.WithFrame(f)
 	return e.Eval(nl.Body, env)
 }
 
