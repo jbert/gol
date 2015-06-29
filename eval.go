@@ -24,6 +24,8 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	switch n := node.(type) {
 	case NodeLet:
 		return e.evalLet(n, env)
+	case NodeProgn:
+		return e.evalProgn(n, env)
 	case NodeList:
 		return e.evalList(n, env)
 	case NodeInt:
@@ -82,6 +84,14 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals []Node) (Node, error) {
 	}
 	env := np.Env.WithFrame(f)
 	return e.Eval(np.Body, env)
+}
+
+func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
+	last := len(np.children)
+	if last == 0 {
+		return NodeList{children: make([]Node, 0)}, nil
+	}
+	return e.Eval(np.children[last-1], env)
 }
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {

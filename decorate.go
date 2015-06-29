@@ -50,6 +50,8 @@ func decorateList(n NodeList) (Node, error) {
 		switch id.String() {
 		case "let":
 			return decorateLet(n)
+		case "progn":
+			return decorateProgn(n)
 		case "lambda":
 			return decorateLambda(n)
 		}
@@ -59,6 +61,15 @@ func decorateList(n NodeList) (Node, error) {
 		return nil, err
 	}
 	return NodeList{NodeBase: n.NodeBase, children: children}, nil
+}
+
+type NodeProgn struct {
+	NodeList
+}
+
+func decorateProgn(n NodeList) (Node, error) {
+	n.children = n.children[1:]
+	return NodeProgn{n}, nil
 }
 
 func decorateLet(n NodeList) (Node, error) {

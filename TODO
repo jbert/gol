@@ -24,12 +24,14 @@ DONE - lambda
 				(let ((a 2))
 					(f 3))))
 
-- check application to regex
+DONE - check application to redex
 	- (+ (+ 1 2) (+ 2 3))
 	- (let ((f (lambda (x) (+ 1 x))))
 		(f (+ 1 2)))
 
-- string type
+DONE - progn
+
+- add progn to let+lambda
 
 - call into go code?
 	- reserve '.' anywhere in identifier

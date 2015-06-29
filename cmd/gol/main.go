@@ -32,19 +32,27 @@ func main() {
 		{`(+ (+ 1 2) (+ 2 3))`, "8"},
 		{`(let ((f (lambda (x) (+ 1 x))))
 			(f (+ 1 2)))`, "4"},
+		{"()", "()"},
+		{`(progn 1 2 3)`, "3"},
+		{`(progn)`, "()"},
+		{`(progn 1)`, "1"},
+		{`(progn 1 2 (+ 1 2))`, "3"},
 	}
 	//	s := `
 	//(func (inc (x))
 	//	(+ 1 x))
 	//`
 
+CASE:
 	for i, tc := range testCases {
 		evalStr, err := evaluateProgram(tc.code)
 		if err != nil {
 			fmt.Printf("%d: err [%s] for code: %s\n", i, err, tc.code)
+			continue CASE
 		}
 		if evalStr != tc.result {
 			fmt.Printf("%d@ wrong result [%s] != [%s] for code: %s\n", i, evalStr, tc.result, tc.code)
+			continue CASE
 		}
 		fmt.Printf("%d: AOK!\n", i)
 	}
