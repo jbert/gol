@@ -104,8 +104,7 @@ func decorateLet(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: support implicit progn
-	nLet.Body = children[0]
+	nLet.Body = NodeProgn{NodeList{children: children}}
 	return nLet, nil
 }
 
@@ -129,7 +128,6 @@ func decorateLambda(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	// TODO: support implicit progn
-	nLambda.Body = children[0]
+	nLambda.Body = NodeProgn{NodeList{children: children}}
 	return nLambda, nil
 }

@@ -31,7 +31,14 @@ DONE - check application to redex
 
 DONE - progn
 
-- add progn to let+lambda
+DONE - add implicit progn to let+lambda
+
+- variable bindings
+	- define
+		- top level?
+		- internal define?
+		- what are the rules for scheme?
+	- syntactic sugar for functions
 
 - call into go code?
 	- reserve '.' anywhere in identifier
