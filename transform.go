@@ -18,19 +18,19 @@ func (ne *NodeError) Error() string {
 	return fmt.Sprintf("%s: %s line %d:%d", ne.msg, pos.File, pos.Line, pos.Column)
 }
 
-func Decorate(node Node) (Node, error) {
+func Transform(node Node) (Node, error) {
 	switch n := node.(type) {
 	case NodeList:
-		return decorateList(n)
+		return transformList(n)
 	default:
 		return node, nil
 	}
 }
 
-func decorateNodes(ns []Node) ([]Node, error) {
+func transformNodes(ns []Node) ([]Node, error) {
 	newNs := make([]Node, 0)
 	for _, n := range ns {
-		newNode, err := Decorate(n)
+		newNode, err := Transform(n)
 		if err != nil {
 			return nil, err
 		}
@@ -39,7 +39,7 @@ func decorateNodes(ns []Node) ([]Node, error) {
 	return newNs, nil
 }
 
-func decorateList(n NodeList) (Node, error) {
+func transformList(n NodeList) (Node, error) {
 	if len(n.children) == 0 {
 		return n, nil
 	}
@@ -49,14 +49,14 @@ func decorateList(n NodeList) (Node, error) {
 	if ok {
 		switch id.String() {
 		case "let":
-			return decorateLet(n)
+			return transformLet(n)
 		case "progn":
-			return decorateProgn(n)
+			return transformProgn(n)
 		case "lambda":
-			return decorateLambda(n)
+			return transformLambda(n)
 		}
 	}
-	children, err := decorateNodes(n.children)
+	children, err := transformNodes(n.children)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,12 @@ type NodeProgn struct {
 	NodeList
 }
 
-func decorateProgn(n NodeList) (Node, error) {
+func transformProgn(n NodeList) (Node, error) {
 	n.children = n.children[1:]
 	return NodeProgn{n}, nil
 }
 
-func decorateLet(n NodeList) (Node, error) {
+func transformLet(n NodeList) (Node, error) {
 	if len(n.children) < 3 {
 		return nil, fmt.Errorf("Bad let expression - missing bindings or body")
 	}
@@ -94,13 +94,13 @@ func decorateLet(n NodeList) (Node, error) {
 			return nil, fmt.Errorf("Bad let expression - invalid identifier")
 		}
 		var err error
-		nLet.Bindings[id.String()], err = Decorate(pair.children[1])
+		nLet.Bindings[id.String()], err = Transform(pair.children[1])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	children, err := decorateNodes(n.children[2:])
+	children, err := transformNodes(n.children[2:])
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func decorateLet(n NodeList) (Node, error) {
 	return nLet, nil
 }
 
-func decorateLambda(n NodeList) (Node, error) {
+func transformLambda(n NodeList) (Node, error) {
 	if len(n.children) < 3 {
 		return nil, fmt.Errorf("Bad lambda expression - missing args or body")
 	}
@@ -124,7 +124,7 @@ func decorateLambda(n NodeList) (Node, error) {
 	}
 	nLambda := NodeLambda{NodeList: n, Args: args.children}
 
-	children, err := decorateNodes(n.children[2:])
+	children, err := transformNodes(n.children[2:])
 	if err != nil {
 		return nil, err
 	}

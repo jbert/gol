@@ -17,7 +17,11 @@ func NewParser(tokens chan Token) *Parser {
 }
 
 func (p *Parser) Parse() (Node, error) {
-	return p.parseSexp()
+	tree, err := p.parseSexp()
+	if err != nil {
+		return nil, err
+	}
+	return Transform(tree)
 }
 
 func (p *Parser) peekToken() Token {

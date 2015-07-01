@@ -77,11 +77,6 @@ func evaluateProgram(prog string) (string, error) {
 		return "", fmt.Errorf("Error parsing: %s\n", parseErr)
 	}
 
-	nodeTree, err := gol.Decorate(nodeTree)
-	if err != nil {
-		return "", fmt.Errorf("Error decorating: %s\n", err)
-	}
-
 	env := gol.MakeDefaultEnvironment()
 
 	//	fmt.Printf("AST: %s\n", nodeTree)
