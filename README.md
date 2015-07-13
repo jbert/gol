@@ -1,4 +1,5 @@
-== GOL
+GOL
+===
 
 A bit of fun parsing s-expressions into a syntax tree in golang, with an interpreter.
 
