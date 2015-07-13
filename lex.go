@@ -77,8 +77,18 @@ func (l *Lexer) Run() error {
 		switch {
 		case r == '"':
 			l.skipRune()
+			escaped := true
 			l.emitMatching(tokString, func(r rune) bool {
-				return r != '"'
+				if r == '\\' {
+					escaped = !escaped
+					return true
+				} else if escaped {
+					escaped = false
+					return true
+				} else {
+					escaped = false
+					return r != '"'
+				}
 			})
 			l.skipRune()
 		case r == '(':

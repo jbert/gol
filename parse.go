@@ -100,6 +100,35 @@ type NodeString struct {
 	nodeAtom
 }
 
+func (ns NodeString) String() string {
+	// Unescape
+	value := make([]rune, 0, len(ns.tok.Value))
+	escaped := false
+RUNE:
+	for _, r := range ns.tok.Value {
+		if r == '\\' {
+			if !escaped {
+				escaped = true
+				continue RUNE
+			} else {
+				escaped = false
+				// fall through
+			}
+		}
+		if escaped {
+			switch r {
+			case 'n':
+				value = append(value, '\n')
+			default:
+				value = append(value, r)
+			}
+		} else {
+			value = append(value, r)
+		}
+	}
+	return string(value)
+}
+
 func (na nodeAtom) String() string {
 	return na.tok.Value
 }
