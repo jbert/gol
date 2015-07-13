@@ -99,6 +99,9 @@ type NodeSymbol struct {
 type NodeString struct {
 	nodeAtom
 }
+type NodeBool struct {
+	nodeAtom
+}
 
 func (ns NodeString) String() string {
 	// Unescape
@@ -168,6 +171,11 @@ func (p *Parser) parseAtom() (Node, error) {
 		return NodeSymbol{nodeAtom{tok: tok}}, nil
 	case tokString:
 		return NodeString{nodeAtom{tok: tok}}, nil
+	case tokBool:
+		if tok.Value != "#t" && tok.Value != "#f" {
+			return nil, fmt.Errorf("Bad boolean value [%s]", tok.Value)
+		}
+		return NodeBool{nodeAtom{tok: tok}}, nil
 	case tokInt:
 		// Special case '+' and '-'
 		if tok.Value == "+" || tok.Value == "-" {

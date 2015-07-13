@@ -15,6 +15,7 @@ const (
 	tokIdentifier
 	tokSymbol
 	tokString
+	tokBool
 )
 
 func (tt TokType) String() string {
@@ -31,6 +32,8 @@ func (tt TokType) String() string {
 		return "tokSymbol"
 	case tokString:
 		return "tokString"
+	case tokBool:
+		return "tokBool"
 	default:
 		return "<unknown>"
 	}
@@ -75,6 +78,10 @@ func (l *Lexer) Run() error {
 		l.skipWhitespace()
 		r := l.peekNextRune()
 		switch {
+		case r == '#':
+			l.stepRune()
+			l.stepRune()
+			l.emit(tokBool)
 		case r == '"':
 			l.skipRune()
 			escaped := true

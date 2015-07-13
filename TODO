@@ -1,11 +1,13 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
+- add booleans? (lisp or scheme!)
+
 - write (failing) 'if' test which uses 'error' to check false branch not evaluated
 	- go with 'truthy' for now
 	- fix test by not evalauting if true/false branches until needed
 
-- add booleans? (lisp or scheme!)
+- handle parsing errors (e.g. #a as a bool)
 
 - add 'quote' special form
 	- use same mechanism as 'if' to avoid default evaluation
