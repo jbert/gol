@@ -25,16 +25,16 @@ func main() {
 		{"(- 1 1)", "0", ""},
 		{"(- 1 2)", "-1", ""},
 		{`(let ((x (- 1 2)))
-				x)`, "-1", ""},
+					x)`, "-1", ""},
 		{`(let ((- +))
-			(let ((x (- 1 2)))
-				x))`, "3", ""},
+				(let ((x (- 1 2)))
+					x))`, "3", ""},
 		{`((lambda (x) (+ 1 x)) 1)`, "2", ""},
 		{`((lambda (x y) (+ y x)) 1 3)`, "4", ""},
 		{`(+ (+ 1 2) (+ 2 3))`, "8", ""},
 		{`(let ((f (lambda (x) (+ 1 x))))
-			(f (+ 1 2)))`, "4", ""},
-		{"()", "()", ""},
+				(f (+ 1 2)))`, "4", ""},
+		{"()", "", "empty application"},
 		{`(progn 1 2 3)`, "3", ""},
 		{`(progn)`, "()", ""},
 		{`(progn 1)`, "1", ""},
@@ -50,6 +50,9 @@ func main() {
 		{`(+ (error "foo") 1)`, "", "foo"},
 		{`(+ 1 (error "foo"))`, "", "foo"},
 		{`(progn (error "foo") "bar")`, "", "foo"},
+
+		{`(if 1 2 3)`, "2", ""},
+		{`(if 1 2 (error "no"))`, "2", ""},
 	}
 	//	s := `
 	//(func (inc (x))
@@ -68,7 +71,7 @@ CASE:
 			continue CASE
 		}
 		if errStr != tc.errOutput {
-			fmt.Printf("%d@ wrong error [%s] != [%s] for code: %s\n", i, evalStr, tc.result, tc.code)
+			fmt.Printf("%d@ wrong error [%s] != [%s] for code: %s\n", i, errStr, tc.errOutput, tc.code)
 			continue CASE
 		}
 		fmt.Printf("%d: AOK!\n", i)

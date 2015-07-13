@@ -109,7 +109,7 @@ func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
 	if len(nl.children) == 0 {
-		return nl, nil // empty list self-evaluates
+		return nil, NodeError{nl, "empty application"}
 	}
 
 	nodes := make([]Node, 0)

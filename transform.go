@@ -13,6 +13,9 @@ type NodeError struct {
 	msg string
 }
 
+func (ne NodeError) String() string {
+	return ne.msg
+}
 func (ne NodeError) Error() string {
 	pos := ne.Pos()
 	return fmt.Sprintf("%s: %s line %d:%d", ne.msg, pos.File, pos.Line, pos.Column)
