@@ -96,6 +96,9 @@ type NodeIdentifier struct {
 type NodeSymbol struct {
 	nodeAtom
 }
+type NodeString struct {
+	nodeAtom
+}
 
 func (na nodeAtom) String() string {
 	return na.tok.Value
@@ -134,6 +137,8 @@ func (p *Parser) parseAtom() (Node, error) {
 		return NodeIdentifier{nodeAtom{tok: tok}}, nil
 	case tokSymbol:
 		return NodeSymbol{nodeAtom{tok: tok}}, nil
+	case tokString:
+		return NodeString{nodeAtom{tok: tok}}, nil
 	case tokInt:
 		// Special case '+' and '-'
 		if tok.Value == "+" || tok.Value == "-" {

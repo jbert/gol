@@ -40,6 +40,8 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		return e.evalLambda(n, env)
 	case NodeSymbol:
 		value = n
+	case NodeString:
+		value = n
 	default:
 		return nil, fmt.Errorf("Unrecognised node type %T", node)
 	}

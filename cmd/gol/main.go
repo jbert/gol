@@ -39,6 +39,8 @@ func main() {
 		{`(progn 1)`, "1"},
 		{`(progn 1 2 (+ 1 2))`, "3"},
 
+		{`"hello world"`, "hello world"},
+
 		{`(let ((x 1)) 3 2 x)`, "1"},
 		{`((lambda (x) (+ 1 x) (+ 2 x)) 2)`, "4"},
 	}

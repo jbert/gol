@@ -14,6 +14,7 @@ const (
 	tokInt
 	tokIdentifier
 	tokSymbol
+	tokString
 )
 
 func (tt TokType) String() string {
@@ -28,6 +29,8 @@ func (tt TokType) String() string {
 		return "tokIdentifier"
 	case tokSymbol:
 		return "tokSymbol"
+	case tokString:
+		return "tokString"
 	default:
 		return "<unknown>"
 	}
@@ -72,6 +75,12 @@ func (l *Lexer) Run() error {
 		l.skipWhitespace()
 		r := l.peekNextRune()
 		switch {
+		case r == '"':
+			l.skipRune()
+			l.emitMatching(tokString, func(r rune) bool {
+				return r != '"'
+			})
+			l.skipRune()
 		case r == '(':
 			l.stepRune()
 			l.emit(tokLParen)
@@ -121,6 +130,11 @@ PEEKING:
 	}
 	l.start = l.pos
 	return l.isEOF()
+}
+
+func (l *Lexer) skipRune() {
+	l.stepRune()
+	l.start = l.pos
 }
 
 func (l *Lexer) peekNextRune() rune {
