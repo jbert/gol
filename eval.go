@@ -28,6 +28,9 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		return e.evalProgn(n, env)
 	case NodeList:
 		return e.evalList(n, env)
+	case NodeError:
+		value = nil
+		return nil, n
 	case NodeInt:
 		value = n
 	case NodeIdentifier:
@@ -89,11 +92,19 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals []Node) (Node, error) {
 }
 
 func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
-	last := len(np.children)
-	if last == 0 {
-		return NodeList{children: make([]Node, 0)}, nil
+	// Value if no children
+	var v Node
+	v = NodeList{children: make([]Node, 0)}
+
+	var err error
+	for _, child := range np.children {
+		v, err = e.Eval(child, env)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return e.Eval(np.children[last-1], env)
+	// Return last
+	return v, nil
 }
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {

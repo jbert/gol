@@ -9,12 +9,12 @@ type NodeLet struct {
 }
 
 type NodeError struct {
-	msg          string
-	originalNode Node
+	Node
+	msg string
 }
 
-func (ne *NodeError) Error() string {
-	pos := ne.originalNode.Pos()
+func (ne NodeError) Error() string {
+	pos := ne.Pos()
 	return fmt.Sprintf("%s: %s line %d:%d", ne.msg, pos.File, pos.Line, pos.Column)
 }
 
@@ -54,6 +54,8 @@ func transformList(n NodeList) (Node, error) {
 			return transformProgn(n)
 		case "lambda":
 			return transformLambda(n)
+		case "error":
+			return transformError(n)
 		}
 	}
 	children, err := transformNodes(n.children)
@@ -67,11 +69,21 @@ type NodeProgn struct {
 	NodeList
 }
 
-func transformProgn(n NodeList) (Node, error) {
-	n.children = n.children[1:]
-	return NodeProgn{n}, nil
+func transformError(n NodeList) (Node, error) {
+	if len(n.children) != 2 {
+		return nil, fmt.Errorf("Bad error expression - exactly one string required")
+	}
+	return NodeError{n.children[1], n.children[1].String()}, nil
 }
 
+func transformProgn(n NodeList) (Node, error) {
+	children, err := transformNodes(n.children[1:])
+	if err != nil {
+		return nil, err
+	}
+	n.children = children
+	return NodeProgn{n}, nil
+}
 func transformLet(n NodeList) (Node, error) {
 	if len(n.children) < 3 {
 		return nil, fmt.Errorf("Bad let expression - missing bindings or body")

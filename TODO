@@ -1,3 +1,15 @@
+DONE - add 'error'
+	DONE - need strings first! :-)
+
+- how to handle Transform without having child-recursion in every
+ list-like handler?
+
+- write (failing) 'if' test which uses 'error' to check false branch not evaluated
+	- fix test by not evalauting if true/false branches until needed
+
+- add 'quote' special form
+	- use same mechanism as 'if' to avoid default evaluation
+
 - variable bindings
 	- define
 		- top level?
