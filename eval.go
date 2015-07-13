@@ -22,6 +22,8 @@ func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	var value Node
 	switch n := node.(type) {
+	case NodeIf:
+		return e.evalIf(n, env)
 	case NodeLet:
 		return e.evalLet(n, env)
 	case NodeProgn:
@@ -51,6 +53,22 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		return nil, fmt.Errorf("Unrecognised node type %T", node)
 	}
 	return value, nil
+}
+
+func (e *Evaluator) evalIf(ni NodeIf, env Environment) (Node, error) {
+	condition, err := e.Eval(ni.Condition, env)
+	if err != nil {
+		return nil, err
+	}
+	conditionBool, ok := condition.(NodeBool)
+	if !ok {
+		return nil, fmt.Errorf("Non-boolean in 'if' condition")
+	}
+	if conditionBool.IsTrue() {
+		return e.Eval(ni.TBranch, env)
+	} else {
+		return e.Eval(ni.FBranch, env)
+	}
 }
 
 func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {

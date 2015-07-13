@@ -2,6 +2,13 @@ package gol
 
 import "fmt"
 
+type NodeIf struct {
+	NodeList
+	Condition Node
+	TBranch   Node
+	FBranch   Node
+}
+
 type NodeLet struct {
 	NodeList
 	Bindings map[string]Node
@@ -59,6 +66,8 @@ func transformList(n NodeList) (Node, error) {
 			return transformLambda(n)
 		case "error":
 			return transformError(n)
+		case "if":
+			return transformIf(n)
 		}
 	}
 	children, err := transformNodes(n.children)
@@ -70,6 +79,22 @@ func transformList(n NodeList) (Node, error) {
 
 type NodeProgn struct {
 	NodeList
+}
+
+func transformIf(n NodeList) (Node, error) {
+	if len(n.children) != 4 {
+		return nil, fmt.Errorf("Bad if expression - missing test or t/f branch")
+	}
+	children, err := transformNodes(n.children[1:])
+	if err != nil {
+		return nil, err
+	}
+	return NodeIf{
+		NodeList:  n,
+		Condition: children[0],
+		TBranch:   children[1],
+		FBranch:   children[2],
+	}, nil
 }
 
 func transformError(n NodeList) (Node, error) {

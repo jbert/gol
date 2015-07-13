@@ -103,6 +103,10 @@ type NodeBool struct {
 	nodeAtom
 }
 
+func (nb NodeBool) IsTrue() bool {
+	return nb.String() == "#t"
+}
+
 func (ns NodeString) String() string {
 	// Unescape
 	value := make([]rune, 0, len(ns.tok.Value))
