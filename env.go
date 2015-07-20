@@ -45,6 +45,10 @@ type NodeBuiltin struct {
 	description string
 }
 
+func (nb NodeBuiltin) IsAtom() bool {
+	return false
+}
+
 func (nb NodeBuiltin) String() string {
 	return nb.description
 }

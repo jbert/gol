@@ -47,11 +47,16 @@ func (nb NodeBase) Pos() Position {
 type Node interface {
 	String() string
 	Pos() Position
+	IsAtom() bool
 }
 
 type NodeList struct {
 	NodeBase
 	children []Node
+}
+
+func (nl NodeList) IsAtom() bool {
+	return false
 }
 
 func (nl *NodeList) Add(node Node) {
@@ -78,8 +83,13 @@ type nodeAtom struct {
 	NodeBase
 	tok Token
 }
+
+func (na nodeAtom) IsAtom() bool {
+	return true
+}
+
 type NodeInt struct {
-	NodeBase
+	nodeAtom
 	value int64
 }
 
