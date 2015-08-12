@@ -47,6 +47,8 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		}
 	} else {
 		switch n := node.(type) {
+		case NodeLambda:
+			return e.evalLambda(n, env)
 		case NodeList:
 			return e.evalList(n, env)
 		case NodeIf:
@@ -55,8 +57,6 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 			return e.evalLet(n, env)
 		case NodeProgn:
 			return e.evalProgn(n, env)
-		case NodeLambda:
-			return e.evalLambda(n, env)
 		case NodeDefine:
 			return e.evalDefine(n, env)
 		default:
@@ -68,7 +68,11 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 }
 
 func (e *Evaluator) evalDefine(nd NodeDefine, env Environment) (Node, error) {
-	err := env.AddDefine(nd.Symbol.String(), nd.Value)
+	evalValue, err := e.Eval(nd.Value, env)
+	if err != nil {
+		return nd, err
+	}
+	err = env.AddDefine(nd.Symbol.String(), evalValue)
 	if err != nil {
 		return nd, err
 	}
