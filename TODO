@@ -10,11 +10,13 @@ DONE - write (failing) 'if' test which uses 'error' to check false branch not ev
 - handle parsing errors (e.g. #a as a bool)
 
 - variable bindings
-	- define
+	DONE - define
 		- top level?
 		- internal define?
 		- what are the rules for scheme?
 	- syntactic sugar for functions
+
+- internal define
 
 - add 'quote' special form
 	- use same mechanism as 'if' to avoid default evaluation
