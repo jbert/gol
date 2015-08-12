@@ -1,16 +1,13 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
-- add booleans? (lisp or scheme!)
+DONE - add booleans? (lisp or scheme!)
 
-- write (failing) 'if' test which uses 'error' to check false branch not evaluated
+DONE - write (failing) 'if' test which uses 'error' to check false branch not evaluated
 	- go with 'truthy' for now
 	- fix test by not evalauting if true/false branches until needed
 
 - handle parsing errors (e.g. #a as a bool)
-
-- add 'quote' special form
-	- use same mechanism as 'if' to avoid default evaluation
 
 - variable bindings
 	- define
@@ -18,6 +15,9 @@ DONE - add 'error'
 		- internal define?
 		- what are the rules for scheme?
 	- syntactic sugar for functions
+
+- add 'quote' special form
+	- use same mechanism as 'if' to avoid default evaluation
 
 - seperate tests to _test files
 	- write repl

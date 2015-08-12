@@ -34,6 +34,13 @@ func (e Environment) Lookup(s string) (Node, error) {
 	return nil, fmt.Errorf("Identifier [%s] not found", s)
 }
 
+func (e Environment) AddDefine(id string, value Node) error {
+	// Add to top-level frame (at end)
+	topLevel := e[len(e)-1]
+	topLevel[id] = value
+	return nil
+}
+
 type NodeApplicable interface {
 	Node
 	Apply(e *Evaluator, nodes []Node) (Node, error)
@@ -55,12 +62,6 @@ func (nb NodeBuiltin) String() string {
 
 func (nb NodeBuiltin) Apply(e *Evaluator, args []Node) (Node, error) {
 	return nb.f(args)
-}
-
-type NodeLambda struct {
-	NodeList
-	Args []Node
-	Body Node
 }
 
 func addInt(nodes []Node) (Node, error) {

@@ -2,24 +2,6 @@ package gol
 
 import "fmt"
 
-type NodeIf struct {
-	NodeList
-	Condition Node
-	TBranch   Node
-	FBranch   Node
-}
-
-type NodeLet struct {
-	NodeList
-	Bindings map[string]Node
-	Body     Node
-}
-
-type NodeError struct {
-	Node
-	msg string
-}
-
 func (ne NodeError) String() string {
 	return ne.msg
 }
@@ -58,6 +40,8 @@ func transformList(n NodeList) (Node, error) {
 	id, ok := first.(NodeIdentifier)
 	if ok {
 		switch id.String() {
+		case "define":
+			return transformDefine(n)
 		case "let":
 			return transformLet(n)
 		case "progn":
@@ -77,8 +61,11 @@ func transformList(n NodeList) (Node, error) {
 	return NodeList{NodeBase: n.NodeBase, children: children}, nil
 }
 
-type NodeProgn struct {
+type NodeIf struct {
 	NodeList
+	Condition Node
+	TBranch   Node
+	FBranch   Node
 }
 
 func transformIf(n NodeList) (Node, error) {
@@ -97,11 +84,20 @@ func transformIf(n NodeList) (Node, error) {
 	}, nil
 }
 
+type NodeError struct {
+	Node
+	msg string
+}
+
 func transformError(n NodeList) (Node, error) {
 	if len(n.children) != 2 {
 		return nil, fmt.Errorf("Bad error expression - exactly one string required")
 	}
 	return NodeError{n.children[1], n.children[1].String()}, nil
+}
+
+type NodeProgn struct {
+	NodeList
 }
 
 func transformProgn(n NodeList) (Node, error) {
@@ -112,6 +108,39 @@ func transformProgn(n NodeList) (Node, error) {
 	n.children = children
 	return NodeProgn{n}, nil
 }
+
+type NodeDefine struct {
+	NodeList
+	Symbol Node
+	Value  Node
+}
+
+func transformDefine(n NodeList) (Node, error) {
+	if len(n.children) != 3 {
+		return nil, fmt.Errorf("Bad define expression - wrong arity")
+	}
+	id, ok := n.children[1].(NodeIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("Bad define expression - invalid identifier")
+	}
+
+	value, err := Transform(n.children[2])
+	if err != nil {
+		return nil, err
+	}
+	return NodeDefine{
+		NodeList: n,
+		Symbol:   id,
+		Value:    value,
+	}, nil
+}
+
+type NodeLet struct {
+	NodeList
+	Bindings map[string]Node
+	Body     Node
+}
+
 func transformLet(n NodeList) (Node, error) {
 	if len(n.children) < 3 {
 		return nil, fmt.Errorf("Bad let expression - missing bindings or body")
@@ -146,6 +175,12 @@ func transformLet(n NodeList) (Node, error) {
 	}
 	nLet.Body = NodeProgn{NodeList{children: children}}
 	return nLet, nil
+}
+
+type NodeLambda struct {
+	NodeList
+	Args []Node
+	Body Node
 }
 
 func transformLambda(n NodeList) (Node, error) {

@@ -9,7 +9,8 @@ import (
 type TokType int
 
 const (
-	tokLParen TokType = iota
+	tokBug TokType = iota // Make the zero value something which causes an error
+	tokLParen
 	tokRParen
 	tokInt
 	tokIdentifier
@@ -50,6 +51,8 @@ type Token struct {
 	Value    string
 	Position Position
 }
+
+var TokBug = Token{tokBug, "error", Position{"error", 0, 0}}
 
 func (t Token) String() string {
 	return fmt.Sprintf("%s [%s]", t.Type, t.Value)

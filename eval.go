@@ -6,9 +6,10 @@ import (
 )
 
 type Evaluator struct {
-	in  io.Reader
-	out io.Writer
-	err io.Writer
+	in      io.Reader
+	out     io.Writer
+	err     io.Writer
+	nesting int
 }
 
 func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
@@ -21,38 +22,57 @@ func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 
 func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	var value Node
-	switch n := node.(type) {
-	case NodeIf:
-		return e.evalIf(n, env)
-	case NodeLet:
-		return e.evalLet(n, env)
-	case NodeProgn:
-		return e.evalProgn(n, env)
-	case NodeList:
-		return e.evalList(n, env)
-	case NodeError:
-		value = nil
-		return nil, n
-	case NodeInt:
-		value = n
-	case NodeIdentifier:
-		var err error
-		value, err = env.Lookup(n.String())
-		if err != nil {
-			return nil, err
+
+	if node.IsAtom() {
+		switch n := node.(type) {
+		case NodeError:
+			value = nil
+			return nil, n
+		case NodeIdentifier:
+			var err error
+			value, err = env.Lookup(n.String())
+			if err != nil {
+				return nil, err
+			}
+		case NodeInt:
+			value = n
+		case NodeSymbol:
+			value = n
+		case NodeString:
+			value = n
+		case NodeBool:
+			value = n
+		default:
+			return nil, fmt.Errorf("Unrecognised atom node type %T", node)
 		}
-	case NodeLambda:
-		return e.evalLambda(n, env)
-	case NodeSymbol:
-		value = n
-	case NodeString:
-		value = n
-	case NodeBool:
-		value = n
-	default:
-		return nil, fmt.Errorf("Unrecognised node type %T", node)
+	} else {
+		switch n := node.(type) {
+		case NodeList:
+			return e.evalList(n, env)
+		case NodeIf:
+			return e.evalIf(n, env)
+		case NodeLet:
+			return e.evalLet(n, env)
+		case NodeProgn:
+			return e.evalProgn(n, env)
+		case NodeLambda:
+			return e.evalLambda(n, env)
+		case NodeDefine:
+			return e.evalDefine(n, env)
+		default:
+			return nil, fmt.Errorf("Unrecognised list node type %T", node)
+
+		}
 	}
 	return value, nil
+}
+
+func (e *Evaluator) evalDefine(nd NodeDefine, env Environment) (Node, error) {
+	err := env.AddDefine(nd.Symbol.String(), nd.Value)
+	if err != nil {
+		return nd, err
+	}
+	return nd.Value, nil
 }
 
 func (e *Evaluator) evalIf(ni NodeIf, env Environment) (Node, error) {

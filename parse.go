@@ -1,9 +1,12 @@
 package gol
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
+
+var ErrNoMoreTokens = errors.New("No More Tokens")
 
 type Parser struct {
 	tokens chan Token
@@ -17,19 +20,39 @@ func NewParser(tokens chan Token) *Parser {
 }
 
 func (p *Parser) Parse() (Node, error) {
-	tree, err := p.parseSexp()
-	if err != nil {
-		return nil, err
+	// We evaluate a program as an implicit progn over the whole text
+	progn := NodeList{}
+	progn.children = append(progn.children, NodeIdentifier{
+		nodeAtom{
+			tok: Token{
+				tokIdentifier,
+				"progn",
+				Position{},
+			},
+		},
+	})
+	for {
+		tree, err := p.parseSexp()
+		if err != nil {
+			if err == ErrNoMoreTokens {
+				break
+			}
+			return nil, err
+		}
+		progn.children = append(progn.children, tree)
 	}
-	return Transform(tree)
+	return Transform(progn)
 }
 
-func (p *Parser) peekToken() Token {
+func (p *Parser) peekToken() (Token, error) {
 	if p.peek == nil {
-		tok := <-p.tokens
+		tok, ok := <-p.tokens
+		if !ok {
+			return TokBug, ErrNoMoreTokens
+		}
 		p.peek = &tok
 	}
-	return *p.peek
+	return *p.peek, nil
 }
 
 func (p *Parser) stepToken() {
@@ -164,7 +187,11 @@ func (p *Parser) Error(reason string) error {
 }
 
 func (p *Parser) parseSexp() (Node, error) {
-	if p.peekToken().Type == tokLParen {
+	tok, err := p.peekToken()
+	if err != nil {
+		return nil, err
+	}
+	if tok.Type == tokLParen {
 		return p.parseList()
 	} else {
 		return p.parseAtom()
@@ -172,7 +199,10 @@ func (p *Parser) parseSexp() (Node, error) {
 }
 
 func (p *Parser) parseAtom() (Node, error) {
-	tok := p.peekToken()
+	tok, err := p.peekToken()
+	if err != nil {
+		return nil, err
+	}
 	p.stepToken()
 	switch tok.Type {
 	case tokLParen:
@@ -207,13 +237,20 @@ func (p *Parser) parseAtom() (Node, error) {
 }
 
 func (p *Parser) parseList() (Node, error) {
-	if p.peekToken().Type != tokLParen {
+	tok, err := p.peekToken()
+	if err != nil {
+		return nil, err
+	}
+	if tok.Type != tokLParen {
 		return nil, p.Error("Parser logic error - missing L paren at start of list")
 	}
 	p.stepToken()
 	NodeList := NodeList{}
 	for {
-		t := p.peekToken()
+		t, err := p.peekToken()
+		if err != nil {
+			return nil, err
+		}
 		if t.Type == tokRParen {
 			p.stepToken()
 			return NodeList, nil

@@ -57,6 +57,9 @@ func main() {
 		{`(if #t 2 3)`, "2", ""},
 		{`(if #f 2 3)`, "3", ""},
 		{`(if #t 2 (error "no"))`, "2", ""},
+
+		{`(define a 2) a`, "2", ""},
+		{`(define a 2) (define a 3) a`, "3", ""},
 	}
 	//	s := `
 	//(func (inc (x))
@@ -65,6 +68,7 @@ func main() {
 
 CASE:
 	for i, tc := range testCases {
+		//		fmt.Printf("%d: running: %s\n", i, tc.code)
 		evalStr, errStr, err := evaluateProgram(tc.code)
 		if err != nil {
 			fmt.Printf("%d: err [%s] for code: %s\n", i, err, tc.code)
