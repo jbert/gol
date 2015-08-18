@@ -7,14 +7,24 @@ DONE - write (failing) 'if' test which uses 'error' to check false branch not ev
 	- go with 'truthy' for now
 	- fix test by not evalauting if true/false branches until needed
 
-- handle parsing errors (e.g. #a as a bool)
+DONE - import chibi tests
+	- license and README
+
+- start with basic chibi tests
+	- implement enough to run test00-fact-3.scm
+		- including I/O
+	- add 'run file' to cmdline
+	- add test runner to drive cmdline to load .scm and .res files from chibi
+	- build simple static HTML report on test coverage
 
 - variable bindings
 	DONE - define
 		- top level?
-		- internal define?
-		- what are the rules for scheme?
 	- syntactic sugar for functions
+	- internal define?
+		- what are the rules for scheme?
+
+- handle parsing errors (e.g. #a as a bool)
 
 - internal define
 
