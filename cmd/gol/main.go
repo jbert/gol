@@ -64,6 +64,11 @@ func main() {
 		{`(define f (lambda (x) (+ 1 x))) (+ 1 3)`, "4", ""},
 		{`((lambda (x) (+ 1 x)) 3)`, "4", ""},
 		{`(define f (lambda (x) (+ 1 x))) (f 3)`, "4", ""},
+
+		{`(define () 1`, "", "Bad"},
+		{`(define (f) 2) (f)`, "2", ""},
+		{`(define (f x) (+ 1 x)) (f 3)`, "4", ""},
+		{`(define (f x) 1) (f 3)`, "1", ""},
 	}
 	//	s := `
 	//(func (inc (x))
@@ -72,7 +77,7 @@ func main() {
 
 CASE:
 	for i, tc := range testCases {
-		//fmt.Printf("%d: running: %s\n", i, tc.code)
+		//		fmt.Printf("%d: running: %s\n", i, tc.code)
 		evalStr, errStr, err := evaluateProgram(tc.code)
 		if err != nil {
 			fmt.Printf("%d: err [%s] for code: %s\n", i, err, tc.code)

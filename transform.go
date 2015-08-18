@@ -119,9 +119,46 @@ func transformDefine(n NodeList) (Node, error) {
 	if len(n.children) != 3 {
 		return nil, fmt.Errorf("Bad define expression - wrong arity")
 	}
+
+	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
+	IDAndArgs, ok := n.children[1].(NodeList)
+	if ok {
+		//		fmt.Printf("define lambda: %s\n", n)
+		//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
+		if len(IDAndArgs.children) == 0 {
+			return nil, fmt.Errorf("Bad func define expression - no name")
+		}
+		id := IDAndArgs.children[0]
+		args := NodeList{
+			children: IDAndArgs.children[1:],
+		}
+		//fmt.Printf("id %s\n", id)
+		//fmt.Printf("args %s\n", args)
+
+		// Replace (f x) -> f
+		n.children[1] = id
+
+		// Replace body -> (lambda 'args' body)
+		// TODO: helpers for construction (and/or package constants)
+		idLambda := NodeIdentifier{nodeAtom{tok: Token{
+			Type:  tokIdentifier,
+			Value: "lambda",
+		}}}
+		children := make([]Node, 0)
+		children = append(children, idLambda)
+		children = append(children, args)
+		children = append(children, n.children[2])
+		body := NodeList{
+			children: children,
+		}
+		n.children[2] = body
+		//fmt.Printf("define lambda: %s\n", n)
+		return transformDefine(n)
+	}
+
 	id, ok := n.children[1].(NodeIdentifier)
 	if !ok {
-		return nil, fmt.Errorf("Bad define expression - invalid identifier")
+		return nil, fmt.Errorf("Bad define expression - invalid identifier type %T", n.children[1])
 	}
 
 	value, err := Transform(n.children[2])

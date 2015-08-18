@@ -20,7 +20,7 @@ DONE - import chibi tests
 - variable bindings
 	DONE - define
 		- top level?
-	- syntactic sugar for functions
+	DONE - syntactic sugar for functions
 	- internal define?
 		- what are the rules for scheme?
 
