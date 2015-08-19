@@ -3,7 +3,7 @@ package gol
 import "fmt"
 
 func (ne NodeError) String() string {
-	return ne.msg
+	return ne.Error()
 }
 func (ne NodeError) Error() string {
 	pos := ne.Pos()

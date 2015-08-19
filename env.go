@@ -9,8 +9,10 @@ type Environment []Frame
 func MakeDefaultEnvironment() Environment {
 	defEnv := []Frame{
 		Frame{
+			"=": NodeBuiltin{f: equalInt, description: "="},
 			"+": NodeBuiltin{f: addInt, description: "+"},
 			"-": NodeBuiltin{f: subInt, description: "-"},
+			"*": NodeBuiltin{f: mulInt, description: "*"},
 		},
 	}
 	return defEnv
@@ -64,6 +66,44 @@ func (nb NodeBuiltin) Apply(e *Evaluator, args []Node) (Node, error) {
 	return nb.f(args)
 }
 
+var NODE_FALSE = NodeBool{
+	nodeAtom{
+		tok: Token{
+			Type:  tokBool,
+			Value: "#f",
+		},
+	},
+}
+
+var NODE_TRUE = NodeBool{
+	nodeAtom{
+		tok: Token{
+			Type:  tokBool,
+			Value: "#t",
+		},
+	},
+}
+
+func equalInt(nodes []Node) (Node, error) {
+	if len(nodes) < 2 {
+		return nil, fmt.Errorf("At least two arguments required")
+	}
+	first, ok := nodes[0].(NodeInt)
+	if !ok {
+		return nil, fmt.Errorf("Non-int passed to equalInt")
+	}
+	for _, n := range nodes[1:] {
+		ni, ok := n.(NodeInt)
+		if !ok {
+			return nil, fmt.Errorf("Non-int passed to equalInt")
+		}
+		if first.Value() != ni.Value() {
+			return NODE_FALSE, nil
+		}
+	}
+	return NODE_TRUE, nil
+}
+
 func addInt(nodes []Node) (Node, error) {
 	var sum int64
 	for _, n := range nodes {
@@ -74,6 +114,19 @@ func addInt(nodes []Node) (Node, error) {
 		sum += ni.Value()
 	}
 	return NodeInt{value: sum}, nil
+}
+
+func mulInt(nodes []Node) (Node, error) {
+	var prod int64
+	prod = 1
+	for _, n := range nodes {
+		ni, ok := n.(NodeInt)
+		if !ok {
+			return nil, fmt.Errorf("Non-int passed to addInt")
+		}
+		prod *= ni.Value()
+	}
+	return NodeInt{value: prod}, nil
 }
 
 func subInt(nodes []Node) (Node, error) {

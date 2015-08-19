@@ -32,7 +32,7 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 			var err error
 			value, err = env.Lookup(n.String())
 			if err != nil {
-				return nil, err
+				return nil, NodeError{node, err.Error()}
 			}
 		case NodeInt:
 			value = n
