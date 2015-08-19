@@ -81,6 +81,9 @@ func (l *Lexer) Run() error {
 		l.skipWhitespace()
 		r := l.peekNextRune()
 		switch {
+		case r == utf8.RuneError:
+			// EOF case
+			break
 		case r == '#':
 			l.stepRune()
 			l.stepRune()
@@ -177,6 +180,7 @@ func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
 
 func (l *Lexer) emit(tokType TokType) {
 	pos := Position{File: l.fname, Line: l.line, Column: l.col}
-	l.Tokens <- Token{Position: pos, Type: tokType, Value: l.s[l.start:l.pos]}
+	tok := Token{Position: pos, Type: tokType, Value: l.s[l.start:l.pos]}
+	l.Tokens <- tok
 	l.start = l.pos
 }
