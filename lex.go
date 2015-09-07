@@ -2,6 +2,7 @@ package gol
 
 import (
 	"fmt"
+	"io"
 	"unicode"
 	"unicode/utf8"
 )
@@ -61,17 +62,23 @@ func (t Token) String() string {
 type Lexer struct {
 	Tokens chan Token
 	fname  string
-	s      string
-	pos    int
-	start  int
-	line   int
-	col    int
+	// Source of new runes
+	r       io.Reader
+	seenEOF bool
+
+	// Token we are assembling
+	buf []byte
+	// index of next rune in unlexed data
+	pos int
+
+	line int
+	col  int
 }
 
-func NewLexer(fname string, data string) *Lexer {
+func NewLexer(fname string, r io.Reader) *Lexer {
 	return &Lexer{
 		Tokens: make(chan Token),
-		s:      data,
+		r:      r,
 		fname:  fname,
 	}
 }
@@ -133,7 +140,7 @@ func (l *Lexer) Run() error {
 }
 
 func (l *Lexer) isEOF() bool {
-	return l.pos == len(l.s)
+	return l.seenEOF && l.pos == len(l.buf)
 }
 
 func (l *Lexer) skipWhitespace() bool {
@@ -146,29 +153,50 @@ PEEKING:
 		}
 		if unicode.IsSpace(next) {
 			l.stepRune()
+			l.discardToPos()
 		} else {
 			break PEEKING
 		}
 
 	}
-	l.start = l.pos
 	return l.isEOF()
 }
 
 func (l *Lexer) skipRune() {
+	l.fetchCheck()
 	l.stepRune()
-	l.start = l.pos
+	l.discardToPos()
 }
 
 func (l *Lexer) peekNextRune() rune {
-	r, _ := utf8.DecodeRuneInString(l.s[l.pos:])
+	l.fetchCheck()
+	r, _ := utf8.DecodeRune(l.buf[l.pos:])
 	return r
 }
 
 func (l *Lexer) stepRune() {
-	_, size := utf8.DecodeRuneInString(l.s[l.pos:])
+	l.fetchCheck()
+	_, size := utf8.DecodeRune(l.buf[l.pos:])
 	l.pos += size
 	l.col += size
+}
+
+func (l *Lexer) discardToPos() {
+	l.buf = l.buf[l.pos:]
+	l.pos = 0
+}
+
+func (l *Lexer) fetchCheck() {
+	// Grab a bit more if we can
+	bufSize := 1024
+	buf := make([]byte, bufSize)
+	n, err := l.r.Read(buf)
+	if err == io.EOF {
+		l.seenEOF = true
+	}
+	if n > 0 {
+		l.buf = append(l.buf, buf[:n]...)
+	}
 }
 
 func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
@@ -179,8 +207,8 @@ func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
 }
 
 func (l *Lexer) emit(tokType TokType) {
-	pos := Position{File: l.fname, Line: l.line, Column: l.col}
-	tok := Token{Position: pos, Type: tokType, Value: l.s[l.start:l.pos]}
+	posn := Position{File: l.fname, Line: l.line, Column: l.col}
+	tok := Token{Position: posn, Type: tokType, Value: string(l.buf[:l.pos])}
 	l.Tokens <- tok
-	l.start = l.pos
+	l.discardToPos()
 }

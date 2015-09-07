@@ -15,8 +15,8 @@ DONE - import chibi tests
 	DONE - including stdout I/O
 		- pass an io.Writer to eval
 	- progressive evaiuation:
-		- have lexer take an io.Reader as input
-			- replaces string
+		DONE - have lexer take an io.Reader as input
+			DONE - replaces string
 			- pass in file+line+col start info to allow
 			  select+eval
 		- rename current parser.Parse method 'ParseAll'
