@@ -14,6 +14,15 @@ DONE - import chibi tests
 	DONE - implement enough to run test00-fact-3.scm
 	DONE - including stdout I/O
 		- pass an io.Writer to eval
+	- progressive evaiuation:
+		- have lexer take an io.Reader as input
+			- replaces string
+			- pass in file+line+col start info to allow
+			  select+eval
+		- rename current parser.Parse method 'ParseAll'
+		- add new method 'ParseOne' which returns after parsing one sexp
+			- implement ParseAll as loop over Parse
+		- add repl
 	- add 'run file' to cmdline
 	- add test runner to drive cmdline to load .scm and .res files from chibi
 	- build simple static HTML report on test coverage
