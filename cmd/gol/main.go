@@ -87,6 +87,7 @@ func main() {
 
 			(fact 3)
 			  `, "6", ""},
+		{`(display "hello, world\n")`, "()", ""},
 	}
 	//	s := `
 	//(func (inc (x))

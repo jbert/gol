@@ -11,8 +11,9 @@ DONE - import chibi tests
 	- license and README
 
 - start with basic chibi tests
-	- implement enough to run test00-fact-3.scm
-		- including I/O
+	DONE - implement enough to run test00-fact-3.scm
+	DONE - including stdout I/O
+		- pass an io.Writer to eval
 	- add 'run file' to cmdline
 	- add test runner to drive cmdline to load .scm and .res files from chibi
 	- build simple static HTML report on test coverage

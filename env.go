@@ -9,10 +9,11 @@ type Environment []Frame
 func MakeDefaultEnvironment() Environment {
 	defEnv := []Frame{
 		Frame{
-			"=": NodeBuiltin{f: equalInt, description: "="},
-			"+": NodeBuiltin{f: addInt, description: "+"},
-			"-": NodeBuiltin{f: subInt, description: "-"},
-			"*": NodeBuiltin{f: mulInt, description: "*"},
+			"=":       NodeBuiltin{f: equalInt, description: "="},
+			"+":       NodeBuiltin{f: addInt, description: "+"},
+			"-":       NodeBuiltin{f: subInt, description: "-"},
+			"*":       NodeBuiltin{f: mulInt, description: "*"},
+			"display": NodeBuiltin{f: display, description: "display"},
 		},
 	}
 	return defEnv
@@ -50,7 +51,7 @@ type NodeApplicable interface {
 
 type NodeBuiltin struct {
 	NodeBase
-	f           func(nodes []Node) (Node, error)
+	f           func(e *Evaluator, nodes []Node) (Node, error)
 	description string
 }
 
@@ -63,7 +64,7 @@ func (nb NodeBuiltin) String() string {
 }
 
 func (nb NodeBuiltin) Apply(e *Evaluator, args []Node) (Node, error) {
-	return nb.f(args)
+	return nb.f(e, args)
 }
 
 var NODE_FALSE = NodeBool{
@@ -84,7 +85,9 @@ var NODE_TRUE = NodeBool{
 	},
 }
 
-func equalInt(nodes []Node) (Node, error) {
+var NODE_NIL = NodeList{}
+
+func equalInt(e *Evaluator, nodes []Node) (Node, error) {
 	if len(nodes) < 2 {
 		return nil, fmt.Errorf("At least two arguments required")
 	}
@@ -104,7 +107,7 @@ func equalInt(nodes []Node) (Node, error) {
 	return NODE_TRUE, nil
 }
 
-func addInt(nodes []Node) (Node, error) {
+func addInt(e *Evaluator, nodes []Node) (Node, error) {
 	var sum int64
 	for _, n := range nodes {
 		ni, ok := n.(NodeInt)
@@ -116,7 +119,7 @@ func addInt(nodes []Node) (Node, error) {
 	return NodeInt{value: sum}, nil
 }
 
-func mulInt(nodes []Node) (Node, error) {
+func mulInt(e *Evaluator, nodes []Node) (Node, error) {
 	var prod int64
 	prod = 1
 	for _, n := range nodes {
@@ -129,7 +132,7 @@ func mulInt(nodes []Node) (Node, error) {
 	return NodeInt{value: prod}, nil
 }
 
-func subInt(nodes []Node) (Node, error) {
+func subInt(e *Evaluator, nodes []Node) (Node, error) {
 	if len(nodes) == 0 {
 		return nil, fmt.Errorf("Arity-error: expected > 0 args")
 	}
@@ -151,4 +154,14 @@ func subInt(nodes []Node) (Node, error) {
 		result -= ni.Value()
 	}
 	return NodeInt{value: result}, nil
+}
+
+func display(e *Evaluator, nodes []Node) (Node, error) {
+	if len(nodes) != 1 {
+		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+	}
+
+	s := nodes[0].String()
+	fmt.Fprintf(e.out, "%s", s)
+	return NODE_NIL, nil
 }
