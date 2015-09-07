@@ -1,14 +1,13 @@
-package main
+package gol
 
 import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/jbert/gol"
+	"testing"
 )
 
-func main() {
+func TestBasic(t *testing.T) {
 	type testCase struct {
 		code      string
 		result    string
@@ -68,7 +67,6 @@ func main() {
 		{`((lambda (x) (+ 1 x)) 3)`, "4", ""},
 		{`(define f (lambda (x) (+ 1 x))) (f 3)`, "4", ""},
 
-		{`(define () 1)`, "", "Error parsing: Bad func define expression - no name"},
 		{`(define (f) 2) (f)`, "2", ""},
 		{`(define (f x) (+ 1 x)) (f 3)`, "4", ""},
 		{`(define (f x) 1) (f 3)`, "1", ""},
@@ -99,25 +97,25 @@ CASE:
 		//		fmt.Printf("%d: running: %s\n", i, tc.code)
 		evalStr, errStr, err := evaluateProgram(tc.code)
 		if err != nil {
-			fmt.Printf("%d: err [%s] for code: %s\n", i, err, tc.code)
+			t.Errorf("%d: err [%s] for code: %s\n", i, err, tc.code)
 			continue CASE
 		}
 		if !strings.HasPrefix(errStr, tc.errOutput) {
-			fmt.Printf("%d@ wrong error [%s] != [%s] for code: %s\n", i, errStr, tc.errOutput, tc.code)
+			t.Errorf("%d@ wrong error [%s] != [%s] for code: %s\n", i, errStr, tc.errOutput, tc.code)
 			continue CASE
 		}
 		if evalStr != tc.result {
-			fmt.Printf("%d@ wrong result [%s] != [%s] for code: %s\n", i, evalStr, tc.result, tc.code)
+			t.Errorf("%d@ wrong result [%s] != [%s] for code: %s\n", i, evalStr, tc.result, tc.code)
 			continue CASE
 		}
-		fmt.Printf("%d: AOK!\n", i)
+		t.Logf("%d: AOK!\n", i)
 	}
 }
 
 func evaluateProgram(prog string) (string, string, error) {
 
 	fname := "tt.gol"
-	l := gol.NewLexer(fname, prog)
+	l := NewLexer(fname, prog)
 	var lexErr error
 	lexDone := make(chan struct{})
 	go func() {
@@ -125,16 +123,16 @@ func evaluateProgram(prog string) (string, string, error) {
 		close(lexDone)
 	}()
 
-	p := gol.NewParser(l.Tokens)
+	p := NewParser(l.Tokens)
 	nodeTree, parseErr := p.Parse()
 	if parseErr != nil {
 		return "", "", fmt.Errorf("Error parsing: %s\n", parseErr)
 	}
 
-	env := gol.MakeDefaultEnvironment()
+	env := MakeDefaultEnvironment()
 
 	//	fmt.Printf("AST: %s\n", nodeTree)
-	e := gol.NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
+	e := NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
 	value, err := e.Eval(nodeTree, env)
 
 	<-lexDone
@@ -144,7 +142,7 @@ func evaluateProgram(prog string) (string, string, error) {
 
 	if err != nil {
 		switch e := err.(type) {
-		case gol.Node:
+		case Node:
 			return "", e.String(), nil
 		default:
 			return "", "", fmt.Errorf("Error evaluating: %s\n", err)
