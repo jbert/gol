@@ -1,6 +1,12 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
+- add some stdlib, not just builtins
+	(define (newline) (display "\n"))
+
+- add 'eval' and 'apply' builtins
+	(eval '(+ 1 2)) => 3
+
 DONE - add booleans? (lisp or scheme!)
 
 DONE - write (failing) 'if' test which uses 'error' to check false branch not evaluated
