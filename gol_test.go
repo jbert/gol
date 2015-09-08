@@ -114,7 +114,7 @@ CASE:
 
 func evaluateProgram(prog string) (string, string, error) {
 
-	fname := "tt.gol"
+	fname := "<internal>"
 	r := strings.NewReader(prog)
 	l := NewLexer(fname, r)
 	var lexErr error
