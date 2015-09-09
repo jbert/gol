@@ -23,8 +23,8 @@ func (o options) validate() error {
 func main() {
 	o := options{}
 
-	flag.BoolVar(&o.displayResult, "display-result", false, "Show result evaluation")
-	flag.StringVar(&o.fileName, "filename", "", "Name of file to evaluate")
+	flag.BoolVar(&o.displayResult, "e", false, "Show result evaluation")
+	flag.StringVar(&o.fileName, "f", "", "Name of file to evaluate")
 	flag.Parse()
 
 	err := o.validate()

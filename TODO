@@ -7,6 +7,8 @@ DONE - add 'error'
 - add 'eval' and 'apply' builtins
 	(eval '(+ 1 2)) => 3
 
+- add '(list 1 2 3)' => eval's to '(1 2 3)
+
 DONE - add booleans? (lisp or scheme!)
 
 DONE - write (failing) 'if' test which uses 'error' to check false branch not evaluated
