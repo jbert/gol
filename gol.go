@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 type Gol struct {
@@ -49,6 +50,16 @@ func (le LexError) Error() string {
 }
 
 func (g *Gol) EvalReader(srcName string, r io.Reader) (Node, error) {
+	env := MakeDefaultEnvironment()
+	err := g.loadStandardLib(&env)
+	if err != nil {
+		return nil, err
+	}
+
+	return g.evalReaderWithEnv(srcName, r, &env)
+}
+
+func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (Node, error) {
 	l := NewLexer(srcName, r)
 
 	// Run the lexer until EOF or error
@@ -66,10 +77,8 @@ func (g *Gol) EvalReader(srcName string, r io.Reader) (Node, error) {
 		return nil, ParseError{parseErr}
 	}
 
-	env := MakeDefaultEnvironment()
-
 	e := NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
-	value, err := e.Eval(nodeTree, env)
+	value, err := e.Eval(nodeTree, *env)
 
 	// Hoover up any lexing errors
 	<-lexDone
@@ -88,4 +97,14 @@ func (g *Gol) EvalReader(srcName string, r io.Reader) (Node, error) {
 	//	fmt.Printf("EVAL: %s\n", value)
 
 	return value, nil
+}
+
+var STDLIB = `
+(define (newline) (display "\n"))
+`
+
+func (g *Gol) loadStandardLib(env *Environment) error {
+	r := strings.NewReader(STDLIB)
+	_, err := g.evalReaderWithEnv("<stdlib>", r, env)
+	return err
 }
