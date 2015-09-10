@@ -99,10 +99,6 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 	return value, nil
 }
 
-var STDLIB = `
-(define (newline) (display "\n"))
-`
-
 func (g *Gol) loadStandardLib(env *Environment) error {
 	r := strings.NewReader(STDLIB)
 	_, err := g.evalReaderWithEnv("<stdlib>", r, env)

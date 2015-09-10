@@ -1,8 +1,9 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
-- add some stdlib, not just builtins
+DONE - add some stdlib, not just builtins
 	(define (newline) (display "\n"))
+	- cons/car/cdr/map/fold in terms of lambda :-)
 
 - add 'eval' and 'apply' builtins
 	(eval '(+ 1 2)) => 3
