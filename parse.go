@@ -21,6 +21,7 @@ func NewParser(tokens chan Token) *Parser {
 
 func (p *Parser) Parse() (Node, error) {
 	// We evaluate a program as an implicit progn over the whole text
+	// TODO - bad idea, instead parse sexp by sexp with 'ParseOne' and a loop in 'ParseAll'
 	progn := NodeList{}
 	progn.children = append(progn.children, NodeIdentifier{
 		nodeAtom{
@@ -60,11 +61,6 @@ func (p *Parser) stepToken() {
 }
 
 type NodeBase struct {
-	pos Position
-}
-
-func (nb NodeBase) Pos() Position {
-	return nb.pos
 }
 
 type Node interface {
@@ -76,6 +72,14 @@ type Node interface {
 type NodeList struct {
 	NodeBase
 	children []Node
+}
+
+func (nl NodeList) Pos() Position {
+	if len(nl.children) == 0 {
+		return Position{File: "<empty list>"}
+	} else {
+		return nl.children[0].Pos()
+	}
 }
 
 func (nl NodeList) IsAtom() bool {
@@ -105,6 +109,10 @@ func (nl NodeList) String() string {
 type nodeAtom struct {
 	NodeBase
 	tok Token
+}
+
+func (na nodeAtom) Pos() Position {
+	return na.tok.Pos
 }
 
 func (na nodeAtom) IsAtom() bool {

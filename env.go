@@ -55,6 +55,10 @@ type NodeBuiltin struct {
 	description string
 }
 
+func (nb NodeBuiltin) Pos() Position {
+	return Position{File: "<builtin>"}
+}
+
 func (nb NodeBuiltin) IsAtom() bool {
 	return false
 }

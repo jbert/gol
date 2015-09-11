@@ -2,14 +2,6 @@ package gol
 
 import "fmt"
 
-func (ne NodeError) String() string {
-	return ne.Error()
-}
-func (ne NodeError) Error() string {
-	pos := ne.Pos()
-	return fmt.Sprintf("%s: %s line %d:%d", ne.msg, pos.File, pos.Line, pos.Column)
-}
-
 func Transform(node Node) (Node, error) {
 	switch n := node.(type) {
 	case NodeList:
@@ -89,6 +81,18 @@ type NodeError struct {
 	msg string
 }
 
+func (ne NodeError) String() string {
+	return ne.Error()
+}
+func (ne NodeError) Error() string {
+	pos := ne.Pos()
+	return fmt.Sprintf("%s: %s line %d:%d [%s]", ne.msg, pos.File, pos.Line, pos.Column, ne.Node)
+}
+
+func nodeErrorf(n Node, f string, args ...interface{}) NodeError {
+	return NodeError{Node: n, msg: fmt.Sprintf(f, args...)}
+}
+
 func transformError(n NodeList) (Node, error) {
 	if len(n.children) != 2 {
 		return nil, fmt.Errorf("Bad error expression - exactly one string required")
@@ -116,8 +120,8 @@ type NodeDefine struct {
 }
 
 func transformDefine(n NodeList) (Node, error) {
-	if len(n.children) != 3 {
-		return nil, fmt.Errorf("Bad define expression - wrong arity")
+	if len(n.children) < 3 {
+		return nil, nodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
 	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
@@ -161,6 +165,7 @@ func transformDefine(n NodeList) (Node, error) {
 		return nil, fmt.Errorf("Bad define expression - invalid identifier type %T", n.children[1])
 	}
 
+	// Implicit progn for remaining children
 	value, err := Transform(n.children[2])
 	if err != nil {
 		return nil, err

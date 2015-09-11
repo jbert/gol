@@ -48,9 +48,9 @@ type Position struct {
 }
 
 type Token struct {
-	Type     TokType
-	Value    string
-	Position Position
+	Type  TokType
+	Value string
+	Pos   Position
 }
 
 var TokBug = Token{tokBug, "error", Position{"error", 0, 0}}
@@ -79,6 +79,7 @@ func NewLexer(fname string, r io.Reader) *Lexer {
 	return &Lexer{
 		Tokens: make(chan Token),
 		r:      r,
+		line:   1, // People count lines from 1! Who know.
 		fname:  fname,
 	}
 }
@@ -208,7 +209,7 @@ func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
 
 func (l *Lexer) emit(tokType TokType) {
 	posn := Position{File: l.fname, Line: l.line, Column: l.col}
-	tok := Token{Position: posn, Type: tokType, Value: string(l.buf[:l.pos])}
+	tok := Token{Pos: posn, Type: tokType, Value: string(l.buf[:l.pos])}
 	l.Tokens <- tok
 	l.discardToPos()
 }
