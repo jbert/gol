@@ -120,7 +120,7 @@ type NodeDefine struct {
 }
 
 func transformDefine(n NodeList) (Node, error) {
-	if len(n.children) < 3 {
+	if len(n.children) != 3 {
 		return nil, nodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
