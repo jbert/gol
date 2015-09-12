@@ -20,7 +20,9 @@ func getScmFiles(baseDir string) []string {
 func TestChibi(t *testing.T) {
 
 	fnames := getScmFiles("chibi-tests/basic")
+	// Fail on first, so we see error details
 	//	fnames := []string{"chibi-tests/basic/test00-fact-3.scm"}
+FNAME:
 	for _, fname := range fnames {
 		ok := runFile(t, fname)
 		if !ok {
@@ -38,6 +40,7 @@ func TestChibi(t *testing.T) {
 			}
 
 			t.Logf("NOTOK %s failed: [%s]\n", fname, contents)
+			break FNAME
 		} else {
 			t.Logf("OK!!! %s succeeded\n", fname)
 		}
