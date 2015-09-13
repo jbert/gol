@@ -5,6 +5,16 @@ DONE - add some stdlib, not just builtins
 	(define (newline) (display "\n"))
 	- cons/car/cdr/map/fold in terms of lambda :-)
 
+- add cons/car/cdr
+	- and NodePair?
+		- what about NodeList?
+			- remove nodeList
+	- add (a . b) syntax
+		- use same data 
+	- add list? and atom?
+	- and list, and length in 
+	- how much native, how much as stdlib?
+
 - add 'eval' and 'apply' builtins
 	(eval '(+ 1 2)) => 3
 
