@@ -120,7 +120,7 @@ type NodeDefine struct {
 }
 
 func transformDefine(n NodeList) (Node, error) {
-	if len(n.children) != 3 {
+	if len(n.children) < 3 {
 		return nil, nodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
@@ -166,14 +166,14 @@ func transformDefine(n NodeList) (Node, error) {
 	}
 
 	// Implicit progn for remaining children
-	value, err := Transform(n.children[2])
+	children, err := transformNodes(n.children[2:])
 	if err != nil {
 		return nil, err
 	}
 	return NodeDefine{
 		NodeList: n,
 		Symbol:   id,
-		Value:    value,
+		Value:    NodeProgn{NodeList{children: children}},
 	}, nil
 }
 
