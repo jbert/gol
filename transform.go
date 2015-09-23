@@ -180,7 +180,7 @@ func transformDefine(n NodeList) (Node, error) {
 
 type NodeLet struct {
 	NodeList
-	Bindings map[string]Node
+	Bindings Frame
 	Body     Node
 }
 
@@ -220,6 +220,10 @@ func transformLet(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
+	children = children.Cons(NodeIdentifier{nodeAtom{tok: Token{
+		Type:  tokIdentifier,
+		Value: "progn",
+	}}})
 	nLet.Body = NodeProgn{children}
 	return nLet, nil
 }
