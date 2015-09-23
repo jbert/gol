@@ -46,12 +46,12 @@ func (e Environment) AddDefine(id string, value Node) error {
 
 type NodeApplicable interface {
 	Node
-	Apply(e *Evaluator, nodes []Node) (Node, error)
+	Apply(e *Evaluator, nodes NodeList) (Node, error)
 }
 
 type NodeBuiltin struct {
 	NodeBase
-	f           func(e *Evaluator, nodes []Node) (Node, error)
+	f           func(e *Evaluator, nodes NodeList) (Node, error)
 	description string
 }
 
@@ -67,7 +67,7 @@ func (nb NodeBuiltin) String() string {
 	return nb.description
 }
 
-func (nb NodeBuiltin) Apply(e *Evaluator, args []Node) (Node, error) {
+func (nb NodeBuiltin) Apply(e *Evaluator, args NodeList) (Node, error) {
 	return nb.f(e, args)
 }
 
@@ -91,81 +91,102 @@ var NODE_TRUE = NodeBool{
 
 var NODE_NIL = NodeList{}
 
-func equalInt(e *Evaluator, nodes []Node) (Node, error) {
-	if len(nodes) < 2 {
+func equalInt(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() < 2 {
 		return nil, fmt.Errorf("At least two arguments required")
 	}
-	first, ok := nodes[0].(NodeInt)
+	first, ok := nodes.First().(NodeInt)
 	if !ok {
 		return nil, fmt.Errorf("Non-int passed to equalInt")
 	}
-	for _, n := range nodes[1:] {
+	ret := NODE_TRUE
+
+	rest := nodes.Rest()
+	_, err := rest.Map(func(n Node) (Node, error) {
 		ni, ok := n.(NodeInt)
 		if !ok {
 			return nil, fmt.Errorf("Non-int passed to equalInt")
 		}
 		if first.Value() != ni.Value() {
-			return NODE_FALSE, nil
+			ret = NODE_FALSE
 		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return NODE_TRUE, nil
+
+	return ret, nil
 }
 
-func addInt(e *Evaluator, nodes []Node) (Node, error) {
+func addInt(e *Evaluator, nodes NodeList) (Node, error) {
 	var sum int64
-	for _, n := range nodes {
+	_, err := nodes.Map(func(n Node) (Node, error) {
 		ni, ok := n.(NodeInt)
 		if !ok {
 			return nil, fmt.Errorf("Non-int passed to addInt")
 		}
 		sum += ni.Value()
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return NodeInt{value: sum}, nil
 }
 
-func mulInt(e *Evaluator, nodes []Node) (Node, error) {
+func mulInt(e *Evaluator, nodes NodeList) (Node, error) {
 	var prod int64
 	prod = 1
-	for _, n := range nodes {
+	_, err := nodes.Map(func(n Node) (Node, error) {
 		ni, ok := n.(NodeInt)
 		if !ok {
 			return nil, fmt.Errorf("Non-int passed to addInt")
 		}
 		prod *= ni.Value()
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return NodeInt{value: prod}, nil
 }
 
-func subInt(e *Evaluator, nodes []Node) (Node, error) {
-	if len(nodes) == 0 {
+func subInt(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() == 0 {
 		return nil, fmt.Errorf("Arity-error: expected > 0 args")
 	}
 
-	ni, ok := nodes[0].(NodeInt)
+	ni, ok := nodes.First().(NodeInt)
 	if !ok {
 		return nil, fmt.Errorf("Non-int passed to subInt")
 	}
 	result := ni.Value()
-	if len(nodes) == 1 {
+	if nodes.Len() == 1 {
 		return NodeInt{value: -result}, nil
 	}
 
-	for _, n := range nodes[1:] {
+	rest := nodes.Rest()
+	_, err := rest.Map(func(n Node) (Node, error) {
 		ni, ok := n.(NodeInt)
 		if !ok {
 			return nil, fmt.Errorf("Non-int passed to subInt")
 		}
 		result -= ni.Value()
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	return NodeInt{value: result}, nil
 }
 
-func display(e *Evaluator, nodes []Node) (Node, error) {
-	if len(nodes) != 1 {
+func display(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() != 1 {
 		return nil, fmt.Errorf("Arity-error: expected == 1 args")
 	}
 
-	s := nodes[0].String()
+	s := nodes.First().String()
 	fmt.Fprintf(e.out, "%s", s)
 	return NODE_NIL, nil
 }
