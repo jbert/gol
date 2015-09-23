@@ -60,7 +60,7 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 		case NodeDefine:
 			return e.evalDefine(n, env)
 		default:
-			return nil, fmt.Errorf("Unrecognised list node type %T", node)
+			return nil, nodeErrorf(n, "Unrecognised list node type %T", node)
 
 		}
 	}
@@ -120,58 +120,77 @@ func (e *Evaluator) evalLambda(nl NodeLambda, env Environment) (Node, error) {
 	}, nil
 }
 
-func (np NodeProcedure) Apply(e *Evaluator, argVals []Node) (Node, error) {
-	if len(argVals) != len(np.Args) {
+func (np NodeProcedure) Apply(e *Evaluator, argVals NodeList) (Node, error) {
+	if argVals.Len() != np.Args.Len() {
 		return nil, fmt.Errorf("Arg mismatch")
 	}
 
 	f := Frame{}
-	for i, argVal := range argVals {
-		idStr := np.Args[i].String()
+	z := np.Args.Zip(argVals)
+	_, err := z.Map(func(n Node) (Node, error) {
+		pair, ok := n.(NodePair)
+		if !ok {
+			return nil, fmt.Errorf("Internal error - zip returns non-pair")
+		}
+		id := pair.car
+		val := pair.cdr
+		idStr := id.String()
 
-		f[idStr] = argVal
+		f[idStr] = val
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	env := np.Env.WithFrame(f)
 	return e.Eval(np.Body, env)
 }
 
 func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
 	// Value if no children
-	var v Node
-	v = NodeList{children: make([]Node, 0)}
+	var lastVal Node
+	lastVal = NodeList{}
 
-	var err error
-	for _, child := range np.children {
-		v, err = e.Eval(child, env)
+	body := np.Rest()
+	_, err := body.Map(func(child Node) (Node, error) {
+		v, err := e.Eval(child, env)
 		if err != nil {
 			return nil, err
 		}
+		lastVal = v
+		return v, nil
+	})
+	if err != nil {
+		return nil, err
 	}
+
 	// Return last
-	return v, nil
+	return lastVal, nil
 }
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
-	if len(nl.children) == 0 {
+	if nl.Len() == 0 {
 		return nil, NodeError{nl, "empty application"}
 	}
 
-	nodes := make([]Node, 0)
-	for _, child := range nl.children {
+	nodes, err := nl.Map(func(child Node) (Node, error) {
 		newVal, err := e.Eval(child, env)
 		if err != nil {
 			return nil, err
 		}
-		nodes = append(nodes, newVal)
-
+		return newVal, nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	applicable, ok := nodes[0].(NodeApplicable)
+	applicable, ok := nodes.First().(NodeApplicable)
 	if !ok {
-		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T", nodes[0])
+		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T [%s]", nodes.First(), nodes)
 	}
 
-	node, err := applicable.Apply(e, nodes[1:])
+	node, err := applicable.Apply(e, nodes.Rest())
 	if err != nil {
 		return nil, err
 	}

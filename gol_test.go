@@ -16,7 +16,7 @@ func TestBasic(t *testing.T) {
 	testCases := []testCase{
 		{"1", "1", ""},
 		{`1
-			`, "1", ""},
+						`, "1", ""},
 		{"2", "2", ""},
 		{"3", "3", ""},
 		{"0", "0", ""},
@@ -27,15 +27,15 @@ func TestBasic(t *testing.T) {
 		{"(- 1 1)", "0", ""},
 		{"(- 1 2)", "-1", ""},
 		{`(let ((x (- 1 2)))
-									x)`, "-1", ""},
+												x)`, "-1", ""},
 		{`(let ((- +))
-								(let ((x (- 1 2)))
-									x))`, "3", ""},
+											(let ((x (- 1 2)))
+												x))`, "3", ""},
 		{`((lambda (x) (+ 1 x)) 1)`, "2", ""},
 		{`((lambda (x y) (+ y x)) 1 3)`, "4", ""},
 		{`(+ (+ 1 2) (+ 2 3))`, "8", ""},
 		{`(let ((f (lambda (x) (+ 1 x))))
-								(f (+ 1 2)))`, "4", ""},
+											(f (+ 1 2)))`, "4", ""},
 		{"()", "", "empty application"},
 		{`(progn 1 2 3)`, "3", ""},
 		{`(progn)`, "()", ""},
@@ -65,26 +65,27 @@ func TestBasic(t *testing.T) {
 
 		{`(define f (lambda (x) (+ 1 x))) (+ 1 3)`, "4", ""},
 		{`((lambda (x) (+ 1 x)) 3)`, "4", ""},
-		{`(define f (lambda (x) (+ 1 x))) (f 3)`, "4", ""},
 
+		{`(define f (lambda (x) (+ 1 x))) (f 3)`, "4", ""},
+		{`(define f (lambda () 2) (f)`, "2", ""},
 		{`(define (f) 2) (f)`, "2", ""},
 		{`(define (f x) (+ 1 x)) (f 3)`, "4", ""},
 		{`(define (f x) 1) (f 3)`, "1", ""},
 
 		{`(define (fact x) 6) (fact 3)
-				  `, "6", ""},
+						  `, "6", ""},
 
 		{`
-				(define (fact-helper x res)
-				  (if (= x 0)
-				      res
-				      (fact-helper (- x 1) (* res x))))
+						(define (fact-helper x res)
+						  (if (= x 0)
+						      res
+						      (fact-helper (- x 1) (* res x))))
 
-				(define (fact x)
-				  (fact-helper x 1))
+						(define (fact x)
+						  (fact-helper x 1))
 
-				(fact 3)
-				  `, "6", ""},
+						(fact 3)
+						  `, "6", ""},
 		{`(display "hello, world\n")`, "()", ""},
 	}
 	//	s := `
@@ -94,7 +95,7 @@ func TestBasic(t *testing.T) {
 
 CASE:
 	for i, tc := range testCases {
-		//	fmt.Printf("%d: running: %s\n", i, tc.code)
+		fmt.Printf("%d: running: %s\n", i, tc.code)
 		evalStr, errStr, err := evaluateProgram(tc.code)
 		if err != nil {
 			t.Errorf("%d: err [%s] for code: %s\n", i, err, tc.code)
@@ -128,6 +129,11 @@ func evaluateProgram(prog string) (string, string, error) {
 	nodeTree, parseErr := p.Parse()
 	if parseErr != nil {
 		return "", "", fmt.Errorf("Error parsing: %s\n", parseErr)
+	}
+
+	nodeTree, parseErr = Transform(nodeTree)
+	if parseErr != nil {
+		return "", "", fmt.Errorf("Error transforming: %s\n", parseErr)
 	}
 
 	env := MakeDefaultEnvironment()

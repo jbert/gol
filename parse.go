@@ -23,7 +23,7 @@ func (p *Parser) Parse() (Node, error) {
 	// We evaluate a program as an implicit progn over the whole text
 	// TODO - bad idea, instead parse sexp by sexp with 'ParseOne' and a loop in 'ParseAll'
 	progn := NodeList{}
-	progn.children = append(progn.children, NodeIdentifier{
+	progn = progn.Cons(NodeIdentifier{
 		nodeAtom{
 			tok: Token{
 				tokIdentifier,
@@ -40,9 +40,10 @@ func (p *Parser) Parse() (Node, error) {
 			}
 			return nil, err
 		}
-		progn.children = append(progn.children, tree)
+		progn = progn.Cons(tree)
 	}
-	return Transform(progn)
+	progn = progn.Reverse()
+	return progn, nil
 }
 
 func (p *Parser) peekToken() (Token, error) {
@@ -67,43 +68,6 @@ type Node interface {
 	String() string
 	Pos() Position
 	IsAtom() bool
-}
-
-type NodeList struct {
-	NodeBase
-	children []Node
-}
-
-func (nl NodeList) Pos() Position {
-	if len(nl.children) == 0 {
-		return Position{File: "<empty list>"}
-	} else {
-		return nl.children[0].Pos()
-	}
-}
-
-func (nl NodeList) IsAtom() bool {
-	return false
-}
-
-func (nl *NodeList) Add(node Node) {
-	nl.children = append(nl.children, node)
-}
-
-func nodesToString(nodes []Node) string {
-	s := []byte("(")
-	for i, n := range nodes {
-		if i != 0 {
-			s = append(s, ' ')
-		}
-		s = append(s, n.String()...)
-	}
-	s = append(s, ')')
-	return string(s)
-}
-
-func (nl NodeList) String() string {
-	return nodesToString(nl.children)
 }
 
 type nodeAtom struct {
@@ -267,6 +231,6 @@ func (p *Parser) parseList() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		NodeList.Add(node)
+		NodeList = NodeList.Append(node)
 	}
 }

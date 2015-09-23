@@ -77,6 +77,11 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 		return nil, ParseError{parseErr}
 	}
 
+	nodeTree, parseErr = Transform(nodeTree)
+	if parseErr != nil {
+		return nil, ParseError{parseErr}
+	}
+
 	e := NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
 	value, err := e.Eval(nodeTree, *env)
 

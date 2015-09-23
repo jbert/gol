@@ -11,24 +11,22 @@ func Transform(node Node) (Node, error) {
 	}
 }
 
-func transformNodes(ns []Node) ([]Node, error) {
-	newNs := make([]Node, 0)
-	for _, n := range ns {
-		newNode, err := Transform(n)
+func transformNodes(nl NodeList) (NodeList, error) {
+	return nl.Map(func(child Node) (Node, error) {
+		newNode, err := Transform(child)
 		if err != nil {
 			return nil, err
 		}
-		newNs = append(newNs, newNode)
-	}
-	return newNs, nil
+		return newNode, nil
+	})
 }
 
 func transformList(n NodeList) (Node, error) {
-	if len(n.children) == 0 {
+	if n.Len() == 0 {
 		return n, nil
 	}
 
-	first := n.children[0]
+	first := n.First()
 	id, ok := first.(NodeIdentifier)
 	if ok {
 		switch id.String() {
@@ -46,11 +44,11 @@ func transformList(n NodeList) (Node, error) {
 			return transformIf(n)
 		}
 	}
-	children, err := transformNodes(n.children)
+	ret, err := transformNodes(n.Rest())
 	if err != nil {
 		return nil, err
 	}
-	return NodeList{NodeBase: n.NodeBase, children: children}, nil
+	return ret.Cons(first), nil
 }
 
 type NodeIf struct {
@@ -61,18 +59,18 @@ type NodeIf struct {
 }
 
 func transformIf(n NodeList) (Node, error) {
-	if len(n.children) != 4 {
+	if n.Len() != 4 {
 		return nil, fmt.Errorf("Bad if expression - missing test or t/f branch")
 	}
-	children, err := transformNodes(n.children[1:])
+	children, err := transformNodes(n.Rest())
 	if err != nil {
 		return nil, err
 	}
 	return NodeIf{
 		NodeList:  n,
-		Condition: children[0],
-		TBranch:   children[1],
-		FBranch:   children[2],
+		Condition: children.First(),
+		TBranch:   children.Nth(1),
+		FBranch:   children.Nth(2),
 	}, nil
 }
 
@@ -94,10 +92,10 @@ func nodeErrorf(n Node, f string, args ...interface{}) NodeError {
 }
 
 func transformError(n NodeList) (Node, error) {
-	if len(n.children) != 2 {
+	if n.Len() != 2 {
 		return nil, fmt.Errorf("Bad error expression - exactly one string required")
 	}
-	return NodeError{n.children[1], n.children[1].String()}, nil
+	return NodeError{n.Nth(1), n.Nth(1).String()}, nil
 }
 
 type NodeProgn struct {
@@ -105,12 +103,11 @@ type NodeProgn struct {
 }
 
 func transformProgn(n NodeList) (Node, error) {
-	children, err := transformNodes(n.children[1:])
+	children, err := transformNodes(n.Rest())
 	if err != nil {
 		return nil, err
 	}
-	n.children = children
-	return NodeProgn{n}, nil
+	return NodeProgn{children.Cons(n.First())}, nil
 }
 
 type NodeDefine struct {
@@ -120,27 +117,29 @@ type NodeDefine struct {
 }
 
 func transformDefine(n NodeList) (Node, error) {
-	if len(n.children) < 3 {
+	if n.Len() < 3 {
 		return nil, nodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
 	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
-	IDAndArgs, ok := n.children[1].(NodeList)
+	IDAndArgs, ok := n.Nth(1).(NodeList)
 	if ok {
 		//		fmt.Printf("define lambda: %s\n", n)
 		//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
-		if len(IDAndArgs.children) == 0 {
+		if IDAndArgs.Len() == 0 {
 			return nil, fmt.Errorf("Bad func define expression - no name")
 		}
-		id := IDAndArgs.children[0]
-		args := NodeList{
-			children: IDAndArgs.children[1:],
-		}
+		id := IDAndArgs.First()
+		args := IDAndArgs.Rest()
 		//fmt.Printf("id %s\n", id)
 		//fmt.Printf("args %s\n", args)
 
+		newDefine := n
+		newDefine.children = NodePair{}
+		newDefine = newDefine.Append(n.First())
+
 		// Replace (f x) -> f
-		n.children[1] = id
+		newDefine = newDefine.Append(id)
 
 		// Replace body -> (lambda 'args' body)
 		// TODO: helpers for construction (and/or package constants)
@@ -148,32 +147,34 @@ func transformDefine(n NodeList) (Node, error) {
 			Type:  tokIdentifier,
 			Value: "lambda",
 		}}}
-		children := make([]Node, 0)
-		children = append(children, idLambda)
-		children = append(children, args)
-		children = append(children, n.children[2])
-		body := NodeList{
-			children: children,
-		}
-		n.children[2] = body
+		body := NodeList{}
+		body = body.Cons(n.Nth(2))
+		body = body.Cons(args)
+		body = body.Cons(idLambda)
+
+		newDefine = newDefine.Append(body)
 		//fmt.Printf("define lambda: %s\n", n)
-		return transformDefine(n)
+		return transformDefine(newDefine)
 	}
 
-	id, ok := n.children[1].(NodeIdentifier)
+	id, ok := n.Nth(1).(NodeIdentifier)
 	if !ok {
-		return nil, fmt.Errorf("Bad define expression - invalid identifier type %T", n.children[1])
+		return nil, fmt.Errorf("Bad define expression - invalid identifier type %T", n.Nth(1))
 	}
 
 	// Implicit progn for remaining children
-	children, err := transformNodes(n.children[2:])
+	children, err := transformNodes(n.Rest().Rest())
 	if err != nil {
 		return nil, err
 	}
+	children = children.Cons(NodeIdentifier{nodeAtom{tok: Token{
+		Type:  tokIdentifier,
+		Value: "progn",
+	}}})
 	return NodeDefine{
 		NodeList: n,
 		Symbol:   id,
-		Value:    NodeProgn{NodeList{children: children}},
+		Value:    NodeProgn{children},
 	}, nil
 }
 
@@ -184,67 +185,76 @@ type NodeLet struct {
 }
 
 func transformLet(n NodeList) (Node, error) {
-	if len(n.children) < 3 {
+	if n.Len() < 3 {
 		return nil, fmt.Errorf("Bad let expression - missing bindings or body")
 	}
 	nLet := NodeLet{NodeList: n, Bindings: make(map[string]Node)}
-	bindings, ok := n.children[1].(NodeList)
+	bindings, ok := n.Nth(1).(NodeList)
 	if !ok {
 		return nil, fmt.Errorf("Bad let expression - bindings must be a list")
 	}
-	for _, pairNode := range bindings.children {
+	_, err := bindings.Map(func(pairNode Node) (Node, error) {
 		pair, ok := pairNode.(NodeList)
 		if !ok {
 			return nil, fmt.Errorf("Bad let expression - bindings must be pairs")
 		}
-		if len(pair.children) != 2 {
+		if pair.Len() != 2 {
 			return nil, fmt.Errorf("Bad let expression - bindings must be pairs")
 		}
-		id, ok := pair.children[0].(NodeIdentifier)
+		id, ok := pair.First().(NodeIdentifier)
 		if !ok {
 			return nil, fmt.Errorf("Bad let expression - invalid identifier")
 		}
 		var err error
-		nLet.Bindings[id.String()], err = Transform(pair.children[1])
+		nLet.Bindings[id.String()], err = Transform(pair.Nth(1))
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	children, err := transformNodes(n.children[2:])
+		return nil, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	nLet.Body = NodeProgn{NodeList{children: children}}
+
+	children, err := transformNodes(n.Rest().Rest())
+	if err != nil {
+		return nil, err
+	}
+	nLet.Body = NodeProgn{children}
 	return nLet, nil
 }
 
 type NodeLambda struct {
 	NodeList
-	Args []Node
+	Args NodeList
 	Body Node
 }
 
 func transformLambda(n NodeList) (Node, error) {
-	if len(n.children) < 3 {
+	if n.Len() != 3 {
 		return nil, fmt.Errorf("Bad lambda expression - missing args or body")
 	}
-	args, ok := n.children[1].(NodeList)
+	args, ok := n.Nth(1).(NodeList)
 	if !ok {
 		return nil, fmt.Errorf("Bad lambda expression - args must be a list")
 	}
-	for _, argNode := range args.children {
+	_, err := args.Map(func(argNode Node) (Node, error) {
 		_, ok := argNode.(NodeIdentifier)
 		if !ok {
 			return nil, fmt.Errorf("Bad lambda expression - arg must be identifier")
 		}
-	}
-	nLambda := NodeLambda{NodeList: n, Args: args.children}
-
-	children, err := transformNodes(n.children[2:])
+		return nil, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	nLambda.Body = NodeProgn{NodeList{children: children}}
+
+	// TODO: implicit progn
+	bodyList := n.Rest().Rest()
+	body, err := Transform(bodyList.First())
+	if err != nil {
+		return nil, err
+	}
+	nLambda := NodeLambda{NodeList: n, Args: args, Body: body}
 	return nLambda, nil
 }
