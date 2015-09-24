@@ -44,11 +44,11 @@ func transformList(n NodeList) (Node, error) {
 			return transformIf(n)
 		}
 	}
-	ret, err := transformNodes(n.Rest())
+	ret, err := transformNodes(n)
 	if err != nil {
 		return nil, err
 	}
-	return ret.Cons(first), nil
+	return ret, nil
 }
 
 type NodeIf struct {
