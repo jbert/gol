@@ -220,11 +220,7 @@ func transformLet(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	children = children.Cons(NodeIdentifier{nodeAtom{tok: Token{
-		Type:  tokIdentifier,
-		Value: "progn",
-	}}})
-	nLet.Body = NodeProgn{children}
+	nLet.Body = makeProgn(children)
 	return nLet, nil
 }
 
@@ -235,8 +231,8 @@ type NodeLambda struct {
 }
 
 func transformLambda(n NodeList) (Node, error) {
-	if n.Len() != 3 {
-		return nil, fmt.Errorf("Bad lambda expression - missing args or body")
+	if n.Len() < 3 {
+		return nil, fmt.Errorf("Bad lambda expression - missing args or body [len %d]: %s", n.Len(), n)
 	}
 	args, ok := n.Nth(1).(NodeList)
 	if !ok {
@@ -253,12 +249,19 @@ func transformLambda(n NodeList) (Node, error) {
 		return nil, err
 	}
 
-	// TODO: implicit progn
-	bodyList := n.Rest().Rest()
-	body, err := Transform(bodyList.First())
+	body := n.Rest().Rest()
+	body, err = transformNodes(body)
 	if err != nil {
 		return nil, err
 	}
-	nLambda := NodeLambda{NodeList: n, Args: args, Body: body}
+	nLambda := NodeLambda{NodeList: n, Args: args, Body: makeProgn(body)}
 	return nLambda, nil
+}
+
+func makeProgn(nl NodeList) NodeProgn {
+	nl = nl.Cons(NodeIdentifier{nodeAtom{tok: Token{
+		Type:  tokIdentifier,
+		Value: "progn",
+	}}})
+	return NodeProgn{nl}
 }
