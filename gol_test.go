@@ -96,7 +96,7 @@ func TestBasic(t *testing.T) {
 
 CASE:
 	for i, tc := range testCases {
-		fmt.Printf("%d: running: %s\n", i, tc.code)
+		//		fmt.Printf("%d: running: %s\n", i, tc.code)
 		evalStr, errStr, err := evaluateProgram(tc.code)
 		if err != nil {
 			t.Errorf("%d: err [%s] for code: %s\n", i, err, tc.code)
