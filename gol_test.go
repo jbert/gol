@@ -67,7 +67,8 @@ func TestBasic(t *testing.T) {
 		{`((lambda (x) (+ 1 x)) 3)`, "4", ""},
 
 		{`(define f (lambda (x) (+ 1 x))) (f 3)`, "4", ""},
-		{`(define f (lambda () 2) (f)`, "2", ""},
+		{`((lambda () 2))`, "2", ""},
+		{`(define f (lambda () 2)) (f)`, "2", ""},
 		{`(define (f) 2) (f)`, "2", ""},
 		{`(define (f x) (+ 1 x)) (f 3)`, "4", ""},
 		{`(define (f x) 1) (f 3)`, "1", ""},
