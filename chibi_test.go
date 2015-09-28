@@ -24,7 +24,7 @@ func TestChibi(t *testing.T) {
 	//	fnames := []string{"chibi-tests/basic/test00-fact-3.scm"}
 FNAME:
 	for _, fname := range fnames {
-		ok := runFile(t, fname)
+		ok, output := runFile(t, fname)
 		if !ok {
 			f, err := os.Open(fname)
 			if err != nil {
@@ -39,7 +39,7 @@ FNAME:
 				continue
 			}
 
-			t.Logf("NOTOK %s failed: [%s]\n", fname, contents)
+			t.Logf("NOTOK %s failed: [%s]\n->%s\n", fname, contents, output)
 			break FNAME
 		} else {
 			t.Logf("OK!!! %s succeeded\n", fname)
@@ -55,7 +55,7 @@ func baseName(fname string) string {
 	return fname[:lastDot]
 }
 
-func runFile(t *testing.T, fname string) bool {
+func runFile(t *testing.T, fname string) (bool, string) {
 	base := baseName(fname)
 	t.Logf("Running %s", base)
 
@@ -63,30 +63,30 @@ func runFile(t *testing.T, fname string) bool {
 	res := base + ".res"
 
 	cmd := exec.Command("go", "run", "cmd/gol/gol.go", "-f", scm)
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Errorf("Failed to run gol: %s", err)
-		return false
+		return false, string(output)
 	}
 
 	f, err := os.Open(res)
 	if err != nil {
 		t.Errorf("Failed to open res file %s: %s", res, err)
-		return false
+		return false, string(output)
 	}
 	defer f.Close()
 
 	expected, err := ioutil.ReadAll(f)
 	if err != nil {
 		t.Errorf("Failed to read expected result: %s", err)
-		return false
+		return false, string(output)
 	}
 
 	if string(expected) == string(output) {
 		t.Logf("Got expected result: %s", output)
-		return true
+		return true, string(output)
 	} else {
 		t.Errorf("Got wrong result: [%v] != [%v]", output, expected)
-		return false
+		return false, string(output)
 	}
 }
