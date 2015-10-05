@@ -89,7 +89,7 @@ func (nl NodeList) Nth(n int) Node {
 	}
 }
 
-func (nl *NodeList) First() Node {
+func (nl NodeList) First() Node {
 	return nl.children.car
 }
 

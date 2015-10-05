@@ -42,6 +42,12 @@ func transformList(n NodeList) (Node, error) {
 			return transformError(n)
 		case "if":
 			return transformIf(n)
+		case "quote":
+			return transformQuote(n)
+		case "quasiquote":
+			return transformQuasiQuote(n)
+		case "unquote":
+			return transformUnQuote(n)
 		}
 	}
 	ret, err := transformNodes(n)
@@ -49,6 +55,58 @@ func transformList(n NodeList) (Node, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+type NodeUnQuote struct {
+	NodeList
+	Arg Node
+}
+
+func (nu NodeUnQuote) IsAtom() bool {
+	return false
+}
+
+type NodeQuote struct {
+	NodeList
+	Arg   Node
+	quasi bool
+}
+
+func (nq NodeQuote) IsAtom() bool {
+	return false
+}
+
+func transformQuasiQuote(n NodeList) (Node, error) {
+	if n.Len() != 2 {
+		return nil, fmt.Errorf("Bad quasiquote expression - more than one arg")
+	}
+	child, err := Transform(n.Rest().First())
+	if err != nil {
+		return nil, err
+	}
+	return NodeQuote{NodeList: n, Arg: child, quasi: true}, nil
+}
+
+func transformQuote(n NodeList) (Node, error) {
+	if n.Len() != 2 {
+		return nil, fmt.Errorf("Bad quote expression - more than one arg")
+	}
+	child, err := Transform(n.Rest().First())
+	if err != nil {
+		return nil, err
+	}
+	return NodeQuote{NodeList: n, Arg: child, quasi: false}, nil
+}
+
+func transformUnQuote(n NodeList) (Node, error) {
+	if n.Len() != 2 {
+		return nil, fmt.Errorf("Bad quote expression - more than one arg")
+	}
+	child, err := Transform(n.Rest().First())
+	if err != nil {
+		return nil, err
+	}
+	return NodeUnQuote{NodeList: n, Arg: child}, nil
 }
 
 type NodeIf struct {
@@ -79,6 +137,9 @@ type NodeError struct {
 	msg string
 }
 
+func (ne NodeError) IsAtom() bool {
+	return false
+}
 func (ne NodeError) String() string {
 	return ne.Error()
 }

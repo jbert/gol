@@ -20,51 +20,71 @@ func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 	}
 }
 
+func (e Evaluator) Quoting() bool {
+	return e.nesting > 0
+}
+
 func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
-	var value Node
-
-	if node.IsAtom() {
-		switch n := node.(type) {
-		case NodeError:
-			value = nil
-			return nil, n
-		case NodeIdentifier:
-			var err error
-			value, err = env.Lookup(n.String())
-			if err != nil {
-				return nil, NodeError{node, err.Error()}
-			}
-		case NodeInt:
-			value = n
-		case NodeSymbol:
-			value = n
-		case NodeString:
-			value = n
-		case NodeBool:
-			value = n
-		default:
-			return nil, fmt.Errorf("Unrecognised atom node type %T", node)
+	switch n := node.(type) {
+	case NodeError:
+		return nil, n
+	case NodeIdentifier:
+		value, err := env.Lookup(n.String())
+		if err != nil {
+			return nil, NodeError{node, err.Error()}
 		}
-	} else {
-		switch n := node.(type) {
-		case NodeLambda:
-			return e.evalLambda(n, env)
-		case NodeList:
+		return value, nil
+	case NodeInt:
+		return n, nil
+	case NodeSymbol:
+		return n, nil
+	case NodeString:
+		return n, nil
+	case NodeBool:
+		return n, nil
+	case NodeQuote:
+		if n.quasi {
+			e.nesting++
+			return e.Eval(n.Arg, env)
+		}
+		return n.Arg, nil
+	case NodeUnQuote:
+		e.nesting--
+		return e.Eval(n.Arg, env)
+	case NodeLambda:
+		if e.Quoting() {
+			return e.evalList(n.NodeList, env)
+		}
+		return e.evalLambda(n, env)
+	case NodeList:
+		if e.Quoting() {
 			return e.evalList(n, env)
-		case NodeIf:
-			return e.evalIf(n, env)
-		case NodeLet:
-			return e.evalLet(n, env)
-		case NodeProgn:
-			return e.evalProgn(n, env)
-		case NodeDefine:
-			return e.evalDefine(n, env)
-		default:
-			return nil, nodeErrorf(n, "Unrecognised list node type %T", node)
-
 		}
+		return e.evalList(n, env)
+	case NodeIf:
+		if e.Quoting() {
+			return e.evalList(n.NodeList, env)
+		}
+		return e.evalIf(n, env)
+	case NodeLet:
+		if e.Quoting() {
+			return e.evalList(n.NodeList, env)
+		}
+		return e.evalLet(n, env)
+	case NodeProgn:
+		if e.Quoting() {
+			return e.evalList(n.NodeList, env)
+		}
+		return e.evalProgn(n, env)
+	case NodeDefine:
+		if e.Quoting() {
+			return e.evalList(n.NodeList, env)
+		}
+		return e.evalDefine(n, env)
+	default:
+		return nil, nodeErrorf(n, "Unrecognised node type %T", node)
+
 	}
-	return value, nil
 }
 
 func (e *Evaluator) evalDefine(nd NodeDefine, env Environment) (Node, error) {
@@ -170,10 +190,6 @@ func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
 }
 
 func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
-	if nl.Len() == 0 {
-		return nil, NodeError{nl, "empty application"}
-	}
-
 	nodes, err := nl.Map(func(child Node) (Node, error) {
 		newVal, err := e.Eval(child, env)
 		if err != nil {
@@ -185,6 +201,13 @@ func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
 		return nil, err
 	}
 
+	if e.Quoting() {
+		return nodes, nil
+	}
+
+	if nl.Len() == 0 {
+		return nil, NodeError{nl, "empty application"}
+	}
 	applicable, ok := nodes.First().(NodeApplicable)
 	if !ok {
 		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T [%s]", nodes.First(), nodes)

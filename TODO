@@ -1,9 +1,38 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
+- remoce IsAtom?
+
 DONE - add some stdlib, not just builtins
 	(define (newline) (display "\n"))
 	- cons/car/cdr/map/fold in terms of lambda :-)
+
+- add 'quote' special form
+	- and quasiquote
+	- and unquote
+	- use same mechanism as 'if' to avoid default evaluation
+
+	...does 'quote/unquote' only affect apply?
+		- also list special forms
+			- apart from unquote if quasi
+		- or the decision to call it?
+
+		...atoms are self-evaluating
+		...lists:
+			- special forms evaluate to their eval's args
+				- plus special form if not qq
+					- or special form is unquote
+				- or just list if qq
+			- list (apply) evals to list (args are evaled) if not qq
+				- or just list if qq
+			- eval of args does recursion
+
+- add quoting reader syntax
+	- and output string form for those nodes
+	- update tests to new output
+
+- add 'list' 
+	- has to eval args, so not the same as (
 
 - add cons/car/cdr
 	- and NodePair?
@@ -56,9 +85,6 @@ DONE - import chibi tests
 - handle parsing errors (e.g. #a as a bool)
 
 - internal define
-
-- add 'quote' special form
-	- use same mechanism as 'if' to avoid default evaluation
 
 - seperate tests to _test files
 	- write repl

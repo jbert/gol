@@ -7,12 +7,33 @@ import (
 	"testing"
 )
 
-func TestBasic(t *testing.T) {
-	type testCase struct {
-		code      string
-		result    string
-		errOutput string
+type testCase struct {
+	code      string
+	result    string
+	errOutput string
+}
+
+func TestGolQuote(t *testing.T) {
+	testCases := []testCase{
+		{"(quote 1)", "1", ""},
+		{"(quote ())", "()", ""},
+		{"(quote (+ 1 2))", "(+ 1 2)", ""},
+
+		{"(quasiquote 1)", "1", ""},
+		{"(quasiquote ())", "()", ""},
+		{"(quasiquote (+ 1 2))", "(+ 1 2)", ""},
+
+		{"(quasiquote (unquote (+ 1 2)))", "3", ""},
+
+		{"(quote (unquote (+ 1 2)))", "(unquote (+ 1 2))", ""},
+
+		//		{"(list 1 2 3)", "(1 2 3)", ""},
+		//		{"(list (+ 1 1) 2 3)", "(2 2 3)", ""},
 	}
+	runCases(t, testCases)
+}
+
+func TestGolBasic(t *testing.T) {
 	testCases := []testCase{
 		{"1", "1", ""},
 		{`1
@@ -94,6 +115,11 @@ func TestBasic(t *testing.T) {
 	//	(+ 1 x))
 	//`
 
+	runCases(t, testCases)
+}
+
+func runCases(t *testing.T, testCases []testCase) {
+
 CASE:
 	for i, tc := range testCases {
 		//		fmt.Printf("%d: running: %s\n", i, tc.code)
@@ -156,7 +182,7 @@ func evaluateProgram(prog string) (string, string, error) {
 			return "", "", fmt.Errorf("Error evaluating: %s\n", err)
 		}
 	}
-	//	fmt.Printf("EVAL: %s\n", value)
+	//fmt.Printf("EVAL: %s %T\n", value, value)
 
 	return value.String(), "", nil
 }
