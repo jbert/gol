@@ -62,9 +62,6 @@ type NodeUnQuote struct {
 	Arg Node
 }
 
-func (nu NodeUnQuote) IsAtom() bool {
-	return false
-}
 func (nq NodeUnQuote) String() string {
 	return "," + nq.Arg.String()
 }
@@ -75,9 +72,6 @@ type NodeQuote struct {
 	quasi bool
 }
 
-func (nq NodeQuote) IsAtom() bool {
-	return false
-}
 func (nq NodeQuote) String() string {
 	argStr := nq.Arg.String()
 	if nq.quasi {
@@ -149,9 +143,6 @@ type NodeError struct {
 	msg string
 }
 
-func (ne NodeError) IsAtom() bool {
-	return false
-}
 func (ne NodeError) String() string {
 	return ne.Error()
 }

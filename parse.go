@@ -67,7 +67,6 @@ type NodeBase struct {
 type Node interface {
 	String() string
 	Pos() Position
-	IsAtom() bool
 }
 
 type nodeAtom struct {
@@ -77,10 +76,6 @@ type nodeAtom struct {
 
 func (na nodeAtom) Pos() Position {
 	return na.tok.Pos
-}
-
-func (na nodeAtom) IsAtom() bool {
-	return true
 }
 
 type NodeInt struct {

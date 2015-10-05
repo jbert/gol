@@ -21,10 +21,6 @@ func (np NodePair) Pos() Position {
 	return np.car.Pos()
 }
 
-func (np NodePair) IsAtom() bool {
-	return false
-}
-
 func Nil() NodePair {
 	return NodePair{}
 }
@@ -46,10 +42,6 @@ func (nl NodeList) Pos() Position {
 	} else {
 		return nl.First().Pos()
 	}
-}
-
-func (nl NodeList) IsAtom() bool {
-	return false
 }
 
 func (nl *NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {

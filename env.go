@@ -60,10 +60,6 @@ func (nb NodeBuiltin) Pos() Position {
 	return Position{File: "<builtin>"}
 }
 
-func (nb NodeBuiltin) IsAtom() bool {
-	return false
-}
-
 func (nb NodeBuiltin) String() string {
 	return nb.description
 }

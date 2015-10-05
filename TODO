@@ -1,7 +1,7 @@
 DONE - add 'error'
 	DONE - need strings first! :-)
 
-- remoce IsAtom?
+DONE - remove IsAtom?
 
 DONE - add some stdlib, not just builtins
 	(define (newline) (display "\n"))
