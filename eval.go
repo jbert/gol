@@ -209,15 +209,19 @@ func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
 		return nodes, nil
 	}
 
+	return e.Apply(nodes)
+}
+
+func (e *Evaluator) Apply(nl NodeList) (Node, error) {
 	if nl.Len() == 0 {
 		return nil, NodeError{nl, "empty application"}
 	}
-	applicable, ok := nodes.First().(NodeApplicable)
+	applicable, ok := nl.First().(NodeApplicable)
 	if !ok {
-		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T [%s]", nodes.First(), nodes)
+		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T [%s]", nl.First(), nl)
 	}
 
-	node, err := applicable.Apply(e, nodes.Rest())
+	node, err := applicable.Apply(e, nl.Rest())
 	if err != nil {
 		return nil, err
 	}

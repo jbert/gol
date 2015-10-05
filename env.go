@@ -18,6 +18,7 @@ func MakeDefaultEnvironment() Environment {
 			"length":  NodeBuiltin{f: length, description: "length"},
 			"reverse": NodeBuiltin{f: reverse, description: "reverse"},
 			"append":  NodeBuiltin{f: listAppend, description: "append"},
+			"apply":   NodeBuiltin{f: apply, description: "apply"},
 		},
 	}
 	return defEnv
@@ -239,4 +240,8 @@ func listAppend(e *Evaluator, nodes NodeList) (Node, error) {
 	}
 
 	return ret, nil
+}
+
+func apply(e *Evaluator, nodes NodeList) (Node, error) {
+	return e.Apply(nodes)
 }
