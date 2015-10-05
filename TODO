@@ -7,7 +7,7 @@ DONE - add some stdlib, not just builtins
 	(define (newline) (display "\n"))
 	- cons/car/cdr/map/fold in terms of lambda :-)
 
-- add 'quote' special form
+DONE - add 'quote' special form
 	- and quasiquote
 	- and unquote
 	- use same mechanism as 'if' to avoid default evaluation
@@ -31,7 +31,7 @@ DONE - add some stdlib, not just builtins
 	- and output string form for those nodes
 	- update tests to new output
 
-- add 'list' 
+DONE - add 'list' 
 	- has to eval args, so not the same as (
 
 - add cons/car/cdr

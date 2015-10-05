@@ -14,6 +14,7 @@ func MakeDefaultEnvironment() Environment {
 			"-":       NodeBuiltin{f: subInt, description: "-"},
 			"*":       NodeBuiltin{f: mulInt, description: "*"},
 			"display": NodeBuiltin{f: display, description: "display"},
+			"list":    NodeBuiltin{f: list, description: "list"},
 		},
 	}
 	return defEnv
@@ -189,4 +190,8 @@ func display(e *Evaluator, nodes NodeList) (Node, error) {
 	s := nodes.First().String()
 	fmt.Fprintf(e.out, "%s", s)
 	return NODE_NIL, nil
+}
+
+func list(e *Evaluator, nodes NodeList) (Node, error) {
+	return nodes, nil
 }

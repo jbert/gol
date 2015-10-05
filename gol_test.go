@@ -27,8 +27,8 @@ func TestGolQuote(t *testing.T) {
 
 		{"(quote (unquote (+ 1 2)))", "(unquote (+ 1 2))", ""},
 
-		//		{"(list 1 2 3)", "(1 2 3)", ""},
-		//		{"(list (+ 1 1) 2 3)", "(2 2 3)", ""},
+		{"(list 1 2 3)", "(1 2 3)", ""},
+		{"(list (+ 1 1) 2 3)", "(2 2 3)", ""},
 	}
 	runCases(t, testCases)
 }
