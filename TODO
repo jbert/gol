@@ -27,7 +27,7 @@ DONE - add 'quote' special form
 				- or just list if qq
 			- eval of args does recursion
 
-- add quoting reader syntax
+DONE - add quoting reader syntax
 	- and output string form for those nodes
 	- update tests to new output
 

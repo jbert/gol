@@ -65,6 +65,9 @@ type NodeUnQuote struct {
 func (nu NodeUnQuote) IsAtom() bool {
 	return false
 }
+func (nq NodeUnQuote) String() string {
+	return "," + nq.Arg.String()
+}
 
 type NodeQuote struct {
 	NodeList
@@ -74,6 +77,15 @@ type NodeQuote struct {
 
 func (nq NodeQuote) IsAtom() bool {
 	return false
+}
+func (nq NodeQuote) String() string {
+	argStr := nq.Arg.String()
+	if nq.quasi {
+		return "'" + argStr
+	} else {
+		return "`" + argStr
+	}
+
 }
 
 func transformQuasiQuote(n NodeList) (Node, error) {

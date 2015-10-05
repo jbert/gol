@@ -39,7 +39,7 @@ func TestGolQuote(t *testing.T) {
 
 		{"(quasiquote (unquote (+ 1 2)))", "3", ""},
 
-		{"(quote (unquote (+ 1 2)))", "(unquote (+ 1 2))", ""},
+		{"(quote (unquote (+ 1 2)))", ",(+ 1 2)", ""},
 
 		{"(list 1 2 3)", "(1 2 3)", ""},
 		{"(list (+ 1 1) 2 3)", "(2 2 3)", ""},
