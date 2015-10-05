@@ -243,5 +243,16 @@ func listAppend(e *Evaluator, nodes NodeList) (Node, error) {
 }
 
 func apply(e *Evaluator, nodes NodeList) (Node, error) {
-	return e.Apply(nodes)
+	// Last should be a list, we
+	args := nodes.Reverse()
+	l, ok := args.First().(NodeList)
+	if !ok {
+		return nil, fmt.Errorf("Non-list passed as last arg to apply")
+	}
+	args.Rest().Map(func(child Node) (Node, error) {
+		l = l.Cons(child)
+		return nil, nil
+	})
+
+	return e.Apply(l)
 }
