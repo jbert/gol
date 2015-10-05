@@ -18,10 +18,19 @@ const (
 	tokSymbol
 	tokString
 	tokBool
+	tokQuote
+	tokBackQuote
+	tokComma
 )
 
 func (tt TokType) String() string {
 	switch tt {
+	case tokQuote:
+		return "tokQuote"
+	case tokBackQuote:
+		return "tokBackQuote"
+	case tokComma:
+		return "tokComma"
 	case tokLParen:
 		return "tokLParen"
 	case tokRParen:
@@ -89,6 +98,15 @@ func (l *Lexer) Run() error {
 		l.skipWhitespace()
 		r := l.peekNextRune()
 		switch {
+		case r == '\'':
+			l.stepRune()
+			l.emit(tokQuote)
+		case r == '`':
+			l.stepRune()
+			l.emit(tokBackQuote)
+		case r == ',':
+			l.stepRune()
+			l.emit(tokComma)
 		case r == utf8.RuneError:
 			// EOF case
 			break

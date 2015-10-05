@@ -163,9 +163,31 @@ func (p *Parser) parseSexp() (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if tok.Type == tokLParen {
+	switch tok.Type {
+	case tokQuote:
+		p.stepToken()
+		arg, err := p.parseSexp()
+		if err != nil {
+			return nil, err
+		}
+		return NodeQuote{Arg: arg, quasi: false}, nil
+	case tokBackQuote:
+		p.stepToken()
+		arg, err := p.parseSexp()
+		if err != nil {
+			return nil, err
+		}
+		return NodeQuote{Arg: arg, quasi: true}, nil
+	case tokComma:
+		p.stepToken()
+		arg, err := p.parseSexp()
+		if err != nil {
+			return nil, err
+		}
+		return NodeUnQuote{Arg: arg}, nil
+	case tokLParen:
 		return p.parseList()
-	} else {
+	default:
 		return p.parseAtom()
 	}
 }

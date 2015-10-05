@@ -45,12 +45,16 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	case NodeQuote:
 		if n.quasi {
 			e.nesting++
-			return e.Eval(n.Arg, env)
+			value, err := e.Eval(n.Arg, env)
+			e.nesting--
+			return value, err
 		}
 		return n.Arg, nil
 	case NodeUnQuote:
 		e.nesting--
-		return e.Eval(n.Arg, env)
+		value, err := e.Eval(n.Arg, env)
+		e.nesting++
+		return value, err
 	case NodeLambda:
 		if e.Quoting() {
 			return e.evalList(n.NodeList, env)
