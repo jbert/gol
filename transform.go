@@ -212,7 +212,7 @@ func transformDefine(n NodeList) (Node, error) {
 			Value: "lambda",
 		}}}
 		body := NodeList{}
-		body = body.Cons(n.Nth(2))
+		body = body.Cons(makeProgn(n.Rest().Rest()))
 		body = body.Cons(args)
 		body = body.Cons(idLambda)
 
@@ -231,14 +231,10 @@ func transformDefine(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	children = children.Cons(NodeIdentifier{nodeAtom{tok: Token{
-		Type:  tokIdentifier,
-		Value: "progn",
-	}}})
 	return NodeDefine{
 		NodeList: n,
 		Symbol:   id,
-		Value:    NodeProgn{children},
+		Value:    makeProgn(children),
 	}, nil
 }
 

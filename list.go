@@ -44,9 +44,9 @@ func (nl NodeList) Pos() Position {
 	}
 }
 
-func (nl *NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {
+func (nl NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {
 	p := nl.children
-	res := *nl
+	res := nl
 	res.children = Nil()
 	for !p.IsNil() {
 		v, err := f(p.car)

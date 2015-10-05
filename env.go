@@ -15,6 +15,9 @@ func MakeDefaultEnvironment() Environment {
 			"*":       NodeBuiltin{f: mulInt, description: "*"},
 			"display": NodeBuiltin{f: display, description: "display"},
 			"list":    NodeBuiltin{f: list, description: "list"},
+			"length":  NodeBuiltin{f: length, description: "length"},
+			"reverse": NodeBuiltin{f: reverse, description: "reverse"},
+			"append":  NodeBuiltin{f: listAppend, description: "append"},
 		},
 	}
 	return defEnv
@@ -190,4 +193,50 @@ func display(e *Evaluator, nodes NodeList) (Node, error) {
 
 func list(e *Evaluator, nodes NodeList) (Node, error) {
 	return nodes, nil
+}
+
+func length(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() != 1 {
+		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+	}
+	nl, ok := nodes.First().(NodeList)
+	if !ok {
+		return nil, fmt.Errorf("Non-list passed to lemgth")
+	}
+
+	return NodeInt{value: int64(nl.Len())}, nil
+}
+
+func reverse(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() != 1 {
+		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+	}
+	nl, ok := nodes.First().(NodeList)
+	if !ok {
+		return nil, fmt.Errorf("Non-list passed to reverse")
+	}
+
+	return nl.Reverse(), nil
+}
+
+func listAppend(e *Evaluator, nodes NodeList) (Node, error) {
+	fst, ok := nodes.First().(NodeList)
+	if !ok {
+		return nil, fmt.Errorf("Non-list passed as first arg to append")
+	}
+
+	ret := fst
+	_, err := nodes.Rest().Map(func(child Node) (Node, error) {
+		l, ok := child.(NodeList)
+		if !ok {
+			return nil, fmt.Errorf("Non-list passed to append: %s %T", child, child)
+		}
+		ret = ret.Append(l)
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
 }

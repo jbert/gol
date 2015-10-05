@@ -13,6 +13,21 @@ type testCase struct {
 	errOutput string
 }
 
+func TestGolFunc(t *testing.T) {
+	testCases := []testCase{
+		{`
+(define (f x)
+	(+ 1 x)
+	(+ 2 x)
+	(+ 3 x))
+
+(f 7)
+`, "10", ""},
+	}
+
+	runCases(t, testCases)
+}
+
 func TestGolQuote(t *testing.T) {
 	testCases := []testCase{
 		{"'1", "1", ""},
