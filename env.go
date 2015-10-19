@@ -220,25 +220,28 @@ func reverse(e *Evaluator, nodes NodeList) (Node, error) {
 	return nl.Reverse(), nil
 }
 
+// Given a list-of-lists, return the flattened list containing all the members
 func listAppend(e *Evaluator, nodes NodeList) (Node, error) {
-	fst, ok := nodes.First().(NodeList)
+	rev := nodes.Reverse()
+	ret, ok := rev.First().(NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Non-list passed as first arg to append")
+		return nil, fmt.Errorf("Non-list passed to append: %s %T", ret, ret)
 	}
 
-	ret := fst
-	_, err := nodes.Rest().Map(func(child Node) (Node, error) {
+	_, err := rev.Rest().Map(func(child Node) (Node, error) {
 		l, ok := child.(NodeList)
 		if !ok {
 			return nil, fmt.Errorf("Non-list passed to append: %s %T", child, child)
 		}
-		ret = ret.Append(l)
+		l.Reverse().Map(func(lChild Node) (Node, error) {
+			ret = ret.Cons(lChild)
+			return nil, nil
+		})
 		return nil, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-
 	return ret, nil
 }
 

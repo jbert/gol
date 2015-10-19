@@ -188,37 +188,7 @@ func transformDefine(n NodeList) (Node, error) {
 	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
 	IDAndArgs, ok := n.Nth(1).(NodeList)
 	if ok {
-		//		fmt.Printf("define lambda: %s\n", n)
-		//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
-		if IDAndArgs.Len() == 0 {
-			return nil, fmt.Errorf("Bad func define expression - no name")
-		}
-		id := IDAndArgs.First()
-		args := IDAndArgs.Rest()
-		//fmt.Printf("id %s\n", id)
-		//fmt.Printf("args %s\n", args)
-
-		newDefine := n
-		newDefine.children = NodePair{}
-		newDefine = newDefine.Append(n.First())
-
-		// Replace (f x) -> f
-		newDefine = newDefine.Append(id)
-
-		// Replace body -> (lambda 'args' body)
-		// TODO: helpers for construction (and/or package constants)
-		idLambda := NodeIdentifier{nodeAtom{tok: Token{
-			Type:  tokIdentifier,
-			Value: "lambda",
-		}}}
-		body := NodeList{}
-		body = body.Cons(makeProgn(n.Rest().Rest()))
-		body = body.Cons(args)
-		body = body.Cons(idLambda)
-
-		newDefine = newDefine.Append(body)
-		//fmt.Printf("define lambda: %s\n", n)
-		return transformDefine(newDefine)
+		return transformSugaryDefine(IDAndArgs, n)
 	}
 
 	id, ok := n.Nth(1).(NodeIdentifier)
@@ -236,6 +206,37 @@ func transformDefine(n NodeList) (Node, error) {
 		Symbol:   id,
 		Value:    makeProgn(children),
 	}, nil
+}
+
+func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
+	//		fmt.Printf("define lambda: %s\n", n)
+	//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
+	if IDAndArgs.Len() == 0 {
+		return nil, fmt.Errorf("Bad func define expression - no name")
+	}
+	id := IDAndArgs.First()
+	args := IDAndArgs.Rest()
+	//fmt.Printf("id %s\n", id)
+	//fmt.Printf("args %s\n", args)
+
+	newDefine := n
+	newDefine.children = NodePair{}
+	newDefine = newDefine.Append(n.First())
+
+	// Replace (f x) -> f
+	newDefine = newDefine.Append(id)
+
+	// Replace body -> (lambda 'args' body)
+	body := NodeList{}
+	lambdaBody := n.Rest().Rest()
+	lambdaBody = lambdaBody.Cons(makeIdentifier("progn"))
+	body = body.Cons(lambdaBody)
+	body = body.Cons(args)
+	body = body.Cons(makeIdentifier("lambda"))
+
+	newDefine = newDefine.Append(body)
+	//fmt.Printf("define lambda: %s\n", n)
+	return transformDefine(newDefine)
 }
 
 type NodeLet struct {
@@ -319,9 +320,6 @@ func transformLambda(n NodeList) (Node, error) {
 }
 
 func makeProgn(nl NodeList) NodeProgn {
-	nl = nl.Cons(NodeIdentifier{nodeAtom{tok: Token{
-		Type:  tokIdentifier,
-		Value: "progn",
-	}}})
+	nl = nl.Cons(makeIdentifier("progn"))
 	return NodeProgn{nl}
 }

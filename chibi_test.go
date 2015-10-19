@@ -63,30 +63,32 @@ func runFile(t *testing.T, fname string) (bool, string) {
 	res := base + ".res"
 
 	cmd := exec.Command("go", "run", "cmd/gol/gol.go", "-f", scm)
-	output, err := cmd.CombinedOutput()
+	bytesOutput, err := cmd.CombinedOutput()
+	output := string(bytesOutput)
 	if err != nil {
 		t.Errorf("Failed to run gol: %s", err)
-		return false, string(output)
+		return false, output
 	}
 
 	f, err := os.Open(res)
 	if err != nil {
 		t.Errorf("Failed to open res file %s: %s", res, err)
-		return false, string(output)
+		return false, output
 	}
 	defer f.Close()
 
-	expected, err := ioutil.ReadAll(f)
+	bytesExpected, err := ioutil.ReadAll(f)
+	expected := string(bytesExpected)
 	if err != nil {
 		t.Errorf("Failed to read expected result: %s", err)
-		return false, string(output)
+		return false, output
 	}
 
-	if string(expected) == string(output) {
+	if expected == output {
 		t.Logf("Got expected result: %s", output)
-		return true, string(output)
+		return true, output
 	} else {
 		t.Errorf("Got wrong result: [%v] != [%v]", output, expected)
-		return false, string(output)
+		return false, output
 	}
 }

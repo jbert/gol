@@ -93,6 +93,14 @@ func (nn NodeInt) Value() int64 {
 type NodeIdentifier struct {
 	nodeAtom
 }
+
+func makeIdentifier(s string) NodeIdentifier {
+	return NodeIdentifier{nodeAtom{tok: Token{
+		Type:  tokIdentifier,
+		Value: s,
+	}}}
+}
+
 type NodeSymbol struct {
 	nodeAtom
 }
