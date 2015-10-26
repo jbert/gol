@@ -19,6 +19,7 @@ func MakeDefaultEnvironment() Environment {
 			"reverse": NodeBuiltin{f: reverse, description: "reverse"},
 			"append":  NodeBuiltin{f: listAppend, description: "append"},
 			"apply":   NodeBuiltin{f: apply, description: "apply"},
+			"zero?":   NodeBuiltin{f: zerop, description: "zerop"},
 		},
 	}
 	return defEnv
@@ -269,4 +270,19 @@ func apply(e *Evaluator, nodes NodeList) (Node, error) {
 	})
 
 	return e.Apply(l)
+}
+
+func zerop(e *Evaluator, nodes NodeList) (Node, error) {
+	if nodes.Len() != 1 {
+		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+	}
+	ni, ok := nodes.First().(NodeInt)
+	if !ok {
+		return nil, fmt.Errorf("Non-int passed to zero?")
+	}
+	if ni.Value() == 0 {
+		return NODE_TRUE, nil
+	} else {
+		return NODE_FALSE, nil
+	}
 }

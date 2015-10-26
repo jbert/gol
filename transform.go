@@ -34,6 +34,8 @@ func transformList(n NodeList) (Node, error) {
 			return transformDefine(n)
 		case "let":
 			return transformLet(n)
+		case "letrec":
+			return transformLet(n)
 		case "progn":
 			return transformProgn(n)
 		case "lambda":
