@@ -25,6 +25,18 @@ func (g *Gol) EvalFile(fname string) (Node, error) {
 	return g.EvalReader(fname, f)
 }
 
+type PosError struct {
+	msg string
+	pos Position
+}
+
+func (pe PosError) Error() string {
+	return fmt.Sprintf("%s: %s line %d:%d", pe.msg, pe.pos.File, pe.pos.Line, pe.pos.Column)
+}
+func posErrorf(pos Position, f string, args ...interface{}) PosError {
+	return PosError{pos: pos, msg: fmt.Sprintf(f, args...)}
+}
+
 type ParseError struct {
 	error
 }

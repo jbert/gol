@@ -214,7 +214,7 @@ func (p *Parser) parseAtom() (Node, error) {
 		return NodeString{nodeAtom{tok: tok}}, nil
 	case tokBool:
 		if tok.Value != "#t" && tok.Value != "#f" {
-			return nil, fmt.Errorf("Bad boolean value [%s]", tok.Value)
+			return nil, posErrorf(tok.Pos, "Bad boolean value [%s]", tok.Value)
 		}
 		return NodeBool{nodeAtom{tok: tok}}, nil
 	case tokInt:
