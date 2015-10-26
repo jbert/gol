@@ -137,7 +137,17 @@ func (e *Evaluator) evalIf(ni NodeIf) (Node, error) {
 }
 
 func (e *Evaluator) evalLet(nl NodeLet) (Node, error) {
+
 	f := Frame{}
+	oldEnv := e.Env
+	defer func() {
+		e.Env = oldEnv
+	}()
+	e.Env = e.Env.WithFrame(f)
+
+	for k, _ := range nl.Bindings {
+		f[k] = NODE_NIL
+	}
 	for k, v := range nl.Bindings {
 		var err error
 		f[k], err = e.Eval(v)
@@ -145,10 +155,7 @@ func (e *Evaluator) evalLet(nl NodeLet) (Node, error) {
 			return nil, err
 		}
 	}
-	oldEnv := e.Env
-	e.Env = e.Env.WithFrame(f)
 	value, err := e.Eval(nl.Body)
-	e.Env = oldEnv
 	return value, err
 }
 
@@ -188,9 +195,11 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals NodeList) (Node, error) {
 	}
 
 	oldEnv := e.Env
+	defer func() {
+		e.Env = oldEnv
+	}()
 	e.Env = np.Env.WithFrame(f)
 	value, err := e.Eval(np.Body)
-	e.Env = oldEnv
 	return value, err
 }
 
