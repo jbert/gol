@@ -195,8 +195,8 @@ func evaluateProgram(prog string) (string, string, error) {
 	env := MakeDefaultEnvironment()
 
 	//	fmt.Printf("AST: %s\n", nodeTree)
-	e := NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
-	value, err := e.Eval(nodeTree, env)
+	e := NewEvaluator(env, os.Stdout, os.Stdin, os.Stderr)
+	value, err := e.Eval(nodeTree)
 
 	<-lexDone
 	if lexErr != nil {

@@ -42,6 +42,8 @@ func transformList(n NodeList) (Node, error) {
 			return transformError(n)
 		case "if":
 			return transformIf(n)
+		case "set!":
+			return transformSet(n)
 		case "quote":
 			return transformQuote(n)
 		case "quasiquote":
@@ -135,6 +137,31 @@ func transformIf(n NodeList) (Node, error) {
 		Condition: children.First(),
 		TBranch:   children.Nth(1),
 		FBranch:   children.Nth(2),
+	}, nil
+}
+
+type NodeSet struct {
+	NodeList
+	Id    NodeIdentifier
+	Value Node
+}
+
+func transformSet(n NodeList) (Node, error) {
+	if n.Len() != 3 {
+		return nil, fmt.Errorf("Bad set! expression - missing id or value")
+	}
+	children, err := transformNodes(n.Rest())
+	if err != nil {
+		return nil, err
+	}
+	id, ok := children.First().(NodeIdentifier)
+	if !ok {
+		return nil, fmt.Errorf("Bad set! expression - non-identifier")
+	}
+	return NodeSet{
+		NodeList: n,
+		Id:       id,
+		Value:    children.Nth(1),
 	}, nil
 }
 

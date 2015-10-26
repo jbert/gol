@@ -49,6 +49,17 @@ func (e Environment) AddDefine(id string, value Node) error {
 	return nil
 }
 
+func (e Environment) Set(id string, value Node) (Node, error) {
+	for _, f := range []Frame(e) {
+		_, ok := f[id]
+		if ok {
+			f[id] = value
+			return value, nil
+		}
+	}
+	return nil, fmt.Errorf("set - Identifier [%s] not found", id)
+}
+
 type NodeApplicable interface {
 	Node
 	Apply(e *Evaluator, nodes NodeList) (Node, error)

@@ -82,8 +82,8 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 		return nil, ParseError{parseErr}
 	}
 
-	e := NewEvaluator(os.Stdout, os.Stdin, os.Stderr)
-	value, err := e.Eval(nodeTree, *env)
+	e := NewEvaluator(*env, os.Stdout, os.Stdin, os.Stderr)
+	value, err := e.Eval(nodeTree)
 
 	// Hoover up any lexing errors
 	<-lexDone

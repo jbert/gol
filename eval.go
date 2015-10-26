@@ -6,14 +6,16 @@ import (
 )
 
 type Evaluator struct {
+	Env     Environment
 	in      io.Reader
 	out     io.Writer
 	err     io.Writer
 	nesting int
 }
 
-func NewEvaluator(out io.Writer, in io.Reader, err io.Writer) *Evaluator {
+func NewEvaluator(env Environment, out io.Writer, in io.Reader, err io.Writer) *Evaluator {
 	return &Evaluator{
+		Env: env,
 		in:  in,
 		out: out,
 		err: err,
@@ -24,12 +26,12 @@ func (e Evaluator) Quoting() bool {
 	return e.nesting > 0
 }
 
-func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
+func (e *Evaluator) Eval(node Node) (Node, error) {
 	switch n := node.(type) {
 	case NodeError:
 		return nil, n
 	case NodeIdentifier:
-		value, err := env.Lookup(n.String())
+		value, err := e.Env.Lookup(n.String())
 		if err != nil {
 			return nil, NodeError{node, err.Error()}
 		}
@@ -45,66 +47,81 @@ func (e *Evaluator) Eval(node Node, env Environment) (Node, error) {
 	case NodeQuote:
 		if n.quasi {
 			e.nesting++
-			value, err := e.Eval(n.Arg, env)
+			value, err := e.Eval(n.Arg)
 			e.nesting--
 			return value, err
 		}
 		return n.Arg, nil
 	case NodeUnQuote:
 		e.nesting--
-		value, err := e.Eval(n.Arg, env)
+		value, err := e.Eval(n.Arg)
 		e.nesting++
 		return value, err
 	case NodeLambda:
 		if e.Quoting() {
-			return e.evalList(n.NodeList, env)
+			return e.evalList(n.NodeList)
 		}
-		return e.evalLambda(n, env)
+		return e.evalLambda(n)
 	case NodeList:
 		if e.Quoting() {
-			return e.evalList(n, env)
+			return e.evalList(n)
 		}
-		return e.evalList(n, env)
+		return e.evalList(n)
 	case NodeIf:
 		if e.Quoting() {
-			return e.evalList(n.NodeList, env)
+			return e.evalList(n.NodeList)
 		}
-		return e.evalIf(n, env)
+		return e.evalIf(n)
+	case NodeSet:
+		if e.Quoting() {
+			return e.evalList(n.NodeList)
+		}
+		return e.evalSet(n)
 	case NodeLet:
 		if e.Quoting() {
-			return e.evalList(n.NodeList, env)
+			return e.evalList(n.NodeList)
 		}
-		return e.evalLet(n, env)
+		return e.evalLet(n)
 	case NodeProgn:
 		if e.Quoting() {
-			return e.evalList(n.NodeList, env)
+			return e.evalList(n.NodeList)
 		}
-		return e.evalProgn(n, env)
+		return e.evalProgn(n)
 	case NodeDefine:
 		if e.Quoting() {
-			return e.evalList(n.NodeList, env)
+			return e.evalList(n.NodeList)
 		}
-		return e.evalDefine(n, env)
+		return e.evalDefine(n)
 	default:
 		return nil, nodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
 }
 
-func (e *Evaluator) evalDefine(nd NodeDefine, env Environment) (Node, error) {
-	evalValue, err := e.Eval(nd.Value, env)
+func (e *Evaluator) evalDefine(nd NodeDefine) (Node, error) {
+	evalValue, err := e.Eval(nd.Value)
 	if err != nil {
 		return nd, err
 	}
-	err = env.AddDefine(nd.Symbol.String(), evalValue)
+	err = e.Env.AddDefine(nd.Symbol.String(), evalValue)
 	if err != nil {
 		return nd, err
 	}
 	return nd.Value, nil
 }
 
-func (e *Evaluator) evalIf(ni NodeIf, env Environment) (Node, error) {
-	condition, err := e.Eval(ni.Condition, env)
+func (e *Evaluator) evalSet(ns NodeSet) (Node, error) {
+	value, err := e.Eval(ns.Value)
+	if err != nil {
+		return nil, err
+	}
+	e.Env.Set(ns.Id.String(), value)
+
+	return value, nil
+}
+
+func (e *Evaluator) evalIf(ni NodeIf) (Node, error) {
+	condition, err := e.Eval(ni.Condition)
 	if err != nil {
 		return nil, err
 	}
@@ -113,23 +130,26 @@ func (e *Evaluator) evalIf(ni NodeIf, env Environment) (Node, error) {
 		return nil, fmt.Errorf("Non-boolean in 'if' condition")
 	}
 	if conditionBool.IsTrue() {
-		return e.Eval(ni.TBranch, env)
+		return e.Eval(ni.TBranch)
 	} else {
-		return e.Eval(ni.FBranch, env)
+		return e.Eval(ni.FBranch)
 	}
 }
 
-func (e *Evaluator) evalLet(nl NodeLet, env Environment) (Node, error) {
+func (e *Evaluator) evalLet(nl NodeLet) (Node, error) {
 	f := Frame{}
 	for k, v := range nl.Bindings {
 		var err error
-		f[k], err = e.Eval(v, env)
+		f[k], err = e.Eval(v)
 		if err != nil {
 			return nil, err
 		}
 	}
-	env = env.WithFrame(f)
-	return e.Eval(nl.Body, env)
+	oldEnv := e.Env
+	e.Env = e.Env.WithFrame(f)
+	value, err := e.Eval(nl.Body)
+	e.Env = oldEnv
+	return value, err
 }
 
 type NodeProcedure struct {
@@ -137,10 +157,10 @@ type NodeProcedure struct {
 	Env Environment
 }
 
-func (e *Evaluator) evalLambda(nl NodeLambda, env Environment) (Node, error) {
+func (e *Evaluator) evalLambda(nl NodeLambda) (Node, error) {
 	return NodeProcedure{
 		NodeLambda: nl,
-		Env:        env,
+		Env:        e.Env,
 	}, nil
 }
 
@@ -167,18 +187,21 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals NodeList) (Node, error) {
 		return nil, err
 	}
 
-	env := np.Env.WithFrame(f)
-	return e.Eval(np.Body, env)
+	oldEnv := e.Env
+	e.Env = np.Env.WithFrame(f)
+	value, err := e.Eval(np.Body)
+	e.Env = oldEnv
+	return value, err
 }
 
-func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
+func (e *Evaluator) evalProgn(np NodeProgn) (Node, error) {
 	// Value if no children
 	var lastVal Node
 	lastVal = NodeList{}
 
 	body := np.Rest()
 	_, err := body.Map(func(child Node) (Node, error) {
-		v, err := e.Eval(child, env)
+		v, err := e.Eval(child)
 		if err != nil {
 			return nil, err
 		}
@@ -193,9 +216,9 @@ func (e *Evaluator) evalProgn(np NodeProgn, env Environment) (Node, error) {
 	return lastVal, nil
 }
 
-func (e *Evaluator) evalList(nl NodeList, env Environment) (Node, error) {
+func (e *Evaluator) evalList(nl NodeList) (Node, error) {
 	nodes, err := nl.Map(func(child Node) (Node, error) {
-		newVal, err := e.Eval(child, env)
+		newVal, err := e.Eval(child)
 		if err != nil {
 			return nil, err
 		}
