@@ -1,10 +1,12 @@
-package gol
+package eval
 
 import (
 	"fmt"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/jbert/gol"
 )
 
 type Gol struct {
@@ -16,25 +18,13 @@ func New() *Gol {
 	return &g
 }
 
-func (g *Gol) EvalFile(fname string) (Node, error) {
+func (g *Gol) EvalFile(fname string) (gol.Node, error) {
 	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err
 	}
 
 	return g.EvalReader(fname, f)
-}
-
-type PosError struct {
-	msg string
-	pos Position
-}
-
-func (pe PosError) Error() string {
-	return fmt.Sprintf("%s: %s line %d:%d", pe.msg, pe.pos.File, pe.pos.Line, pe.pos.Column)
-}
-func posErrorf(pos Position, f string, args ...interface{}) PosError {
-	return PosError{pos: pos, msg: fmt.Sprintf(f, args...)}
 }
 
 type ParseError struct {
@@ -61,7 +51,12 @@ func (le LexError) Error() string {
 	return fmt.Sprintf("Lex error: %s", le.error)
 }
 
-func (g *Gol) EvalReader(srcName string, r io.Reader) (Node, error) {
+func (g *Gol) EvalProgram(srcName string, prog string) (gol.Node, error) {
+	r := strings.NewReader(prog)
+	return g.EvalReader(srcName, r)
+}
+
+func (g *Gol) EvalReader(srcName string, r io.Reader) (gol.Node, error) {
 	env := MakeDefaultEnvironment()
 	err := g.loadStandardLib(&env)
 	if err != nil {
@@ -71,8 +66,8 @@ func (g *Gol) EvalReader(srcName string, r io.Reader) (Node, error) {
 	return g.evalReaderWithEnv(srcName, r, &env)
 }
 
-func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (Node, error) {
-	l := NewLexer(srcName, r)
+func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (gol.Node, error) {
+	l := gol.NewLexer(srcName, r)
 
 	// Run the lexer until EOF or error
 	var lexErr error
@@ -83,13 +78,13 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 	}()
 
 	// Run the parser until the lexer finishes
-	p := NewParser(l.Tokens)
+	p := gol.NewParser(l.Tokens)
 	nodeTree, parseErr := p.Parse()
 	if parseErr != nil {
 		return nil, ParseError{parseErr}
 	}
 
-	nodeTree, parseErr = Transform(nodeTree)
+	nodeTree, parseErr = gol.Transform(nodeTree)
 	if parseErr != nil {
 		return nil, ParseError{parseErr}
 	}
@@ -105,7 +100,7 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 
 	if err != nil {
 		switch e := err.(type) {
-		case NodeError:
+		case gol.NodeError:
 			return nil, e
 		default:
 			return nil, EvalError{err}
@@ -117,7 +112,7 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 }
 
 func (g *Gol) loadStandardLib(env *Environment) error {
-	r := strings.NewReader(STDLIB)
+	r := strings.NewReader(gol.STDLIB)
 	_, err := g.evalReaderWithEnv("<stdlib>", r, env)
 	return err
 }

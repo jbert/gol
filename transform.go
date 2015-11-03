@@ -61,31 +61,6 @@ func transformList(n NodeList) (Node, error) {
 	return ret, nil
 }
 
-type NodeUnQuote struct {
-	NodeList
-	Arg Node
-}
-
-func (nq NodeUnQuote) String() string {
-	return "," + nq.Arg.String()
-}
-
-type NodeQuote struct {
-	NodeList
-	Arg   Node
-	quasi bool
-}
-
-func (nq NodeQuote) String() string {
-	argStr := nq.Arg.String()
-	if nq.quasi {
-		return "'" + argStr
-	} else {
-		return "`" + argStr
-	}
-
-}
-
 func transformQuasiQuote(n NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, fmt.Errorf("Bad quasiquote expression - more than one arg")
@@ -94,7 +69,7 @@ func transformQuasiQuote(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeQuote{NodeList: n, Arg: child, quasi: true}, nil
+	return NodeQuote{NodeList: n, Arg: child, Quasi: true}, nil
 }
 
 func transformQuote(n NodeList) (Node, error) {
@@ -105,7 +80,7 @@ func transformQuote(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeQuote{NodeList: n, Arg: child, quasi: false}, nil
+	return NodeQuote{NodeList: n, Arg: child, Quasi: false}, nil
 }
 
 func transformUnQuote(n NodeList) (Node, error) {
@@ -117,13 +92,6 @@ func transformUnQuote(n NodeList) (Node, error) {
 		return nil, err
 	}
 	return NodeUnQuote{NodeList: n, Arg: child}, nil
-}
-
-type NodeIf struct {
-	NodeList
-	Condition Node
-	TBranch   Node
-	FBranch   Node
 }
 
 func transformIf(n NodeList) (Node, error) {
@@ -140,12 +108,6 @@ func transformIf(n NodeList) (Node, error) {
 		TBranch:   children.Nth(1),
 		FBranch:   children.Nth(2),
 	}, nil
-}
-
-type NodeSet struct {
-	NodeList
-	Id    NodeIdentifier
-	Value Node
 }
 
 func transformSet(n NodeList) (Node, error) {
@@ -167,32 +129,11 @@ func transformSet(n NodeList) (Node, error) {
 	}, nil
 }
 
-type NodeError struct {
-	Node
-	msg string
-}
-
-func (ne NodeError) String() string {
-	return ne.Error()
-}
-func (ne NodeError) Error() string {
-	pos := ne.Pos()
-	return fmt.Sprintf("%s: %s line %d:%d [%s]", ne.msg, pos.File, pos.Line, pos.Column, ne.Node)
-}
-
-func nodeErrorf(n Node, f string, args ...interface{}) NodeError {
-	return NodeError{Node: n, msg: fmt.Sprintf(f, args...)}
-}
-
 func transformError(n NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, fmt.Errorf("Bad error expression - exactly one string required")
 	}
 	return NodeError{n.Nth(1), n.Nth(1).String()}, nil
-}
-
-type NodeProgn struct {
-	NodeList
 }
 
 func transformProgn(n NodeList) (Node, error) {
@@ -203,15 +144,9 @@ func transformProgn(n NodeList) (Node, error) {
 	return NodeProgn{children.Cons(n.First())}, nil
 }
 
-type NodeDefine struct {
-	NodeList
-	Symbol Node
-	Value  Node
-}
-
 func transformDefine(n NodeList) (Node, error) {
 	if n.Len() < 3 {
-		return nil, nodeErrorf(n, "Bad define expression - wrong arity")
+		return nil, NodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
 	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
@@ -268,12 +203,6 @@ func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
 	return transformDefine(newDefine)
 }
 
-type NodeLet struct {
-	NodeList
-	Bindings Frame
-	Body     Node
-}
-
 func transformLet(n NodeList) (Node, error) {
 	if n.Len() < 3 {
 		return nil, fmt.Errorf("Bad let expression - missing bindings or body")
@@ -312,12 +241,6 @@ func transformLet(n NodeList) (Node, error) {
 	}
 	nLet.Body = makeProgn(children)
 	return nLet, nil
-}
-
-type NodeLambda struct {
-	NodeList
-	Args NodeList
-	Body Node
 }
 
 func transformLambda(n NodeList) (Node, error) {

@@ -1,9 +1,12 @@
+- refactor:
+	- all AST types in one place
+
 - make backend pluggable
 	- consumes AST
+		- go?
 		- asm
 		- perl?
 		- scheme?
-		- go?
 
 - macro system
 	- re-implement some special forms as macros?

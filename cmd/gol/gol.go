@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jbert/gol"
+	"github.com/jbert/gol/eval"
 )
 
 type options struct {
@@ -35,7 +35,7 @@ func main() {
 		os.Exit(-1)
 	}
 
-	g := gol.New()
+	g := eval.New()
 	n, err := g.EvalFile(o.fileName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to eval: %s\n", err)

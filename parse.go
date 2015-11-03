@@ -8,6 +8,18 @@ import (
 
 var ErrNoMoreTokens = errors.New("No More Tokens")
 
+type PosError struct {
+	msg string
+	pos Position
+}
+
+func (pe PosError) Error() string {
+	return fmt.Sprintf("%s: %s line %d:%d", pe.msg, pe.pos.File, pe.pos.Line, pe.pos.Column)
+}
+func posErrorf(pos Position, f string, args ...interface{}) PosError {
+	return PosError{pos: pos, msg: fmt.Sprintf(f, args...)}
+}
+
 type Parser struct {
 	tokens chan Token
 	peek   *Token
@@ -61,93 +73,6 @@ func (p *Parser) stepToken() {
 	p.peek = nil
 }
 
-type NodeBase struct {
-}
-
-type Node interface {
-	String() string
-	Pos() Position
-}
-
-type nodeAtom struct {
-	NodeBase
-	tok Token
-}
-
-func (na nodeAtom) Pos() Position {
-	return na.tok.Pos
-}
-
-type NodeInt struct {
-	nodeAtom
-	value int64
-}
-
-func (nn NodeInt) String() string {
-	return fmt.Sprintf("%d", nn.value)
-}
-func (nn NodeInt) Value() int64 {
-	return nn.value
-}
-
-type NodeIdentifier struct {
-	nodeAtom
-}
-
-func makeIdentifier(s string) NodeIdentifier {
-	return NodeIdentifier{nodeAtom{tok: Token{
-		Type:  tokIdentifier,
-		Value: s,
-	}}}
-}
-
-type NodeSymbol struct {
-	nodeAtom
-}
-type NodeString struct {
-	nodeAtom
-}
-type NodeBool struct {
-	nodeAtom
-}
-
-func (nb NodeBool) IsTrue() bool {
-	return nb.String() == "#t"
-}
-
-func (ns NodeString) String() string {
-	// Unescape
-	value := make([]rune, 0, len(ns.tok.Value))
-	escaped := false
-RUNE:
-	for _, r := range ns.tok.Value {
-		if r == '\\' {
-			if !escaped {
-				escaped = true
-				continue RUNE
-			} else {
-				escaped = false
-				// fall through
-			}
-		}
-		if escaped {
-			switch r {
-			case 'n':
-				value = append(value, '\n')
-			default:
-				value = append(value, r)
-			}
-		} else {
-			value = append(value, r)
-		}
-	}
-	return string(value)
-}
-
-func (na nodeAtom) String() string {
-	return na.tok.Value
-}
-
 type ParserError struct {
 	reason string
 }
@@ -173,14 +98,14 @@ func (p *Parser) parseSexp() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return NodeQuote{Arg: arg, quasi: false}, nil
+		return NodeQuote{Arg: arg, Quasi: false}, nil
 	case tokBackQuote:
 		p.stepToken()
 		arg, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		return NodeQuote{Arg: arg, quasi: true}, nil
+		return NodeQuote{Arg: arg, Quasi: true}, nil
 	case tokComma:
 		p.stepToken()
 		arg, err := p.parseSexp()

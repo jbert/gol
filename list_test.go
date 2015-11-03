@@ -2,14 +2,10 @@ package gol
 
 import "testing"
 
-func makeNum(n int) Node {
-	return NodeInt{value: int64(n)}
-}
-
-func makeListTo(n int) NodeList {
+func makeListTo(n int64) NodeList {
 	nl := NodeList{}
 	for i := n; i > 0; i-- {
-		nl = nl.Cons(makeNum(i))
+		nl = nl.Cons(NewNodeInt(i))
 	}
 	return nl
 }
@@ -21,7 +17,7 @@ func TestListReverse(t *testing.T) {
 	}
 
 	l1 := NodeList{
-		children: NodePair{makeNum(2), NodePair{makeNum(1), NodePair{}}},
+		children: NodePair{NewNodeInt(2), NodePair{NewNodeInt(1), NodePair{}}},
 	}
 	if l1.Len() != 2 {
 		t.Fatalf("Wrong length of l1: %d", l1.Len())
@@ -45,7 +41,7 @@ func TestListCons(t *testing.T) {
 	if l.Len() != 0 {
 		t.Fatalf("Empty list doesn't have zero length")
 	}
-	l2 := l.Cons(makeNum(1))
+	l2 := l.Cons(NewNodeInt(1))
 	if l.Len() != 0 {
 		t.Fatalf("Cons changes the source")
 	}
@@ -80,7 +76,7 @@ func TestListMap(t *testing.T) {
 			return nil, nil
 		}
 		expected++
-		return makeNum(int(-ni.Value())), nil
+		return NewNodeInt(-ni.Value()), nil
 	})
 	if err != nil {
 		t.Errorf("Error return from map: %s", err)
@@ -106,7 +102,7 @@ func TestListMap(t *testing.T) {
 			return nil, nil
 		}
 		expected--
-		return makeNum(int(-ni.Value())), nil
+		return NewNodeInt(-ni.Value()), nil
 	})
 	t.Logf("second map return: %s\n", m2)
 }

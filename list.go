@@ -2,60 +2,18 @@ package gol
 
 import "fmt"
 
-// ----------------------------------------
-
-type NodePair struct {
-	car Node
-	cdr Node
-}
-
-func (np NodePair) String() string {
-	if np.IsNil() {
-		return "()"
-	} else {
-		return fmt.Sprintf("(%v %v)", np.car, np.cdr)
-	}
-}
-
-func (np NodePair) Pos() Position {
-	return np.car.Pos()
-}
-
-func Nil() NodePair {
-	return NodePair{}
-}
-
-func (np *NodePair) IsNil() bool {
-	return np.car == nil && np.cdr == nil
-}
-
-// ----------------------------------------
-
-type NodeList struct {
-	NodeBase
-	children NodePair
-}
-
-func (nl NodeList) Pos() Position {
-	if nl.Len() == 0 {
-		return Position{File: "<empty list>"}
-	} else {
-		return nl.First().Pos()
-	}
-}
-
 func (nl NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {
 	p := nl.children
 	res := nl
 	res.children = Nil()
 	for !p.IsNil() {
-		v, err := f(p.car)
+		v, err := f(p.Car)
 		if err != nil {
 			return res, err
 		}
 		res = res.Cons(v)
 		var ok bool
-		p, ok = p.cdr.(NodePair)
+		p, ok = p.Cdr.(NodePair)
 		if !ok {
 			panic("Map on improoper list")
 		}
@@ -75,22 +33,22 @@ func (nl *NodeList) Len() int {
 
 func (nl NodeList) Nth(n int) Node {
 	if n == 0 {
-		return nl.children.car
+		return nl.children.Car
 	} else {
 		return nl.Rest().Nth(n - 1)
 	}
 }
 
 func (nl NodeList) First() Node {
-	return nl.children.car
+	return nl.children.Car
 }
 
 func (nl NodeList) Rest() NodeList {
 	newList := nl
 	var ok bool
-	newList.children, ok = newList.children.cdr.(NodePair)
+	newList.children, ok = newList.children.Cdr.(NodePair)
 	if !ok {
-		panic(fmt.Sprintf("NodeList not a list: %T", newList.children.cdr))
+		panic(fmt.Sprintf("NodeList not a list: %T", newList.children.Cdr))
 	}
 	return newList
 }
@@ -109,10 +67,10 @@ func (nl NodeList) String() string {
 		}
 		first = false
 
-		s = append(s, n.car.String()...)
+		s = append(s, n.Car.String()...)
 
 		var ok bool
-		n, ok = n.cdr.(NodePair)
+		n, ok = n.Cdr.(NodePair)
 		if !ok {
 			panic(fmt.Sprintf("NodeList with non-list children: %T\n", n))
 		}
@@ -142,7 +100,7 @@ func (nl NodeList) String() string {
 func (nl NodeList) Cons(n Node) NodeList {
 	ret := nl
 	prev := ret.children
-	ret.children = NodePair{car: n, cdr: prev}
+	ret.children = NewNodePair(n, prev)
 	return ret
 }
 
@@ -162,7 +120,7 @@ func (nl NodeList) Zip(nl2 NodeList) NodeList {
 	if car == nil || cdr == nil {
 		return ret
 	}
-	pair := NodePair{car: car, cdr: cdr}
+	pair := NewNodePair(car, cdr)
 	rest := nl.Rest().Zip(nl2.Rest())
 	return rest.Cons(pair)
 }
