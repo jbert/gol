@@ -81,9 +81,8 @@ func (pe ParserError) Error() string {
 	return pe.reason
 }
 
-func (p *Parser) Error(reason string) error {
-	// TODO - add file, line and column
-	return ParserError{reason: reason}
+func (p *Parser) Error(tok Token, reason string) error {
+	return posErrorf(tok.Pos, "%s", reason)
 }
 
 func (p *Parser) parseSexp() (Node, error) {
@@ -128,9 +127,9 @@ func (p *Parser) parseAtom() (Node, error) {
 	p.stepToken()
 	switch tok.Type {
 	case tokLParen:
-		return nil, p.Error("Found L Paren, expected atom")
+		return nil, p.Error(tok, "Found L Paren, expected atom")
 	case tokRParen:
-		return nil, p.Error("Found R Paren, expected atom")
+		return nil, p.Error(tok, "Found R Paren, expected atom")
 	case tokIdentifier:
 		return NodeIdentifier{nodeAtom{tok: tok}}, nil
 	case tokSymbol:
@@ -150,7 +149,7 @@ func (p *Parser) parseAtom() (Node, error) {
 
 		v, err := strconv.ParseInt(tok.Value, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("Can't parse [%s] as integer: %s", tok.Value, err)
+			return nil, posErrorf(tok.Pos, "Can't parse [%s] as integer: %s", tok.Value, err)
 		}
 		return NodeInt{value: v}, nil
 	default:
@@ -164,7 +163,7 @@ func (p *Parser) parseList() (Node, error) {
 		return nil, err
 	}
 	if tok.Type != tokLParen {
-		return nil, p.Error("Parser logic error - missing L paren at start of list")
+		return nil, p.Error(tok, "Parser logic error - missing L paren at start of list")
 	}
 	p.stepToken()
 	NodeList := NodeList{}
