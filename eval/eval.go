@@ -1,7 +1,6 @@
 package eval
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/jbert/gol"
@@ -129,7 +128,7 @@ func (e *Evaluator) evalIf(ni gol.NodeIf) (gol.Node, error) {
 	}
 	conditionBool, ok := condition.(gol.NodeBool)
 	if !ok {
-		return nil, fmt.Errorf("Non-boolean in 'if' condition")
+		return nil, gol.NodeErrorf(ni, "Non-boolean in 'if' condition")
 	}
 	if conditionBool.IsTrue() {
 		return e.Eval(ni.TBranch)
@@ -170,7 +169,7 @@ func (e *Evaluator) evalLambda(nl gol.NodeLambda) (gol.Node, error) {
 
 func (np NodeProcedure) Apply(e *Evaluator, argVals gol.NodeList) (gol.Node, error) {
 	if argVals.Len() != np.Args.Len() {
-		return nil, fmt.Errorf("Arg mismatch")
+		return nil, gol.NodeErrorf(argVals, "Arg mismatch")
 	}
 
 	f := gol.Frame{}
@@ -178,7 +177,7 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals gol.NodeList) (gol.Node, err
 	_, err := z.Map(func(n gol.Node) (gol.Node, error) {
 		pair, ok := n.(gol.NodePair)
 		if !ok {
-			return nil, fmt.Errorf("Internal error - zip returns non-pair")
+			return nil, gol.NodeErrorf(argVals, "Internal error - zip returns non-pair")
 		}
 		id := pair.Car
 		val := pair.Cdr
@@ -247,7 +246,7 @@ func (e *Evaluator) Apply(nl gol.NodeList) (gol.Node, error) {
 	}
 	applicable, ok := nl.First().(NodeApplicable)
 	if !ok {
-		return nil, fmt.Errorf("Can't evaluate list with non-applicable head: %T [%s]", nl.First(), nl)
+		return nil, gol.NodeErrorf(nl, "Can't evaluate list with non-applicable head: %T [%s]", nl.First(), nl)
 	}
 
 	node, err := applicable.Apply(e, nl.Rest())
