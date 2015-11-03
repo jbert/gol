@@ -151,7 +151,7 @@ func (l *Lexer) Run() error {
 			})
 		default:
 			close(l.Tokens)
-			return fmt.Errorf("Internal error: unrecognised rune [%c]", r)
+			return posErrorf(l.currentPosition(), "Internal error: unrecognised rune [%c]", r)
 		}
 	}
 	close(l.Tokens)
@@ -225,9 +225,12 @@ func (l *Lexer) emitMatching(tokType TokType, f func(r rune) bool) {
 	l.emit(tokType)
 }
 
+func (l Lexer) currentPosition() Position {
+	return Position{File: l.fname, Line: l.line, Column: l.col}
+}
+
 func (l *Lexer) emit(tokType TokType) {
-	posn := Position{File: l.fname, Line: l.line, Column: l.col}
-	tok := Token{Pos: posn, Type: tokType, Value: string(l.buf[:l.pos])}
+	tok := Token{Pos: l.currentPosition(), Type: tokType, Value: string(l.buf[:l.pos])}
 	l.Tokens <- tok
 	l.discardToPos()
 }
