@@ -50,11 +50,11 @@ func (nb NodeBuiltin) Apply(e *Evaluator, args gol.NodeList) (gol.Node, error) {
 
 func equalInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() < 2 {
-		return nil, fmt.Errorf("At least two arguments required")
+		return nil, gol.NodeErrorf(nodes, "At least two arguments required")
 	}
 	first, ok := nodes.First().(gol.NodeInt)
 	if !ok {
-		return nil, fmt.Errorf("Non-int passed to equalInt")
+		return nil, gol.NodeErrorf(nodes, "Non-int passed to equalInt")
 	}
 	ret := gol.NODE_TRUE
 
@@ -62,7 +62,7 @@ func equalInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	_, err := rest.Map(func(n gol.Node) (gol.Node, error) {
 		ni, ok := n.(gol.NodeInt)
 		if !ok {
-			return nil, fmt.Errorf("Non-int passed to equalInt")
+			return nil, gol.NodeErrorf(nodes, "Non-int passed to equalInt")
 		}
 		if first.Value() != ni.Value() {
 			ret = gol.NODE_FALSE
@@ -81,7 +81,7 @@ func addInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	_, err := nodes.Map(func(n gol.Node) (gol.Node, error) {
 		ni, ok := n.(gol.NodeInt)
 		if !ok {
-			return nil, fmt.Errorf("Non-int passed to addInt")
+			return nil, gol.NodeErrorf(nodes, "Non-int passed to addInt")
 		}
 		sum += ni.Value()
 		return nil, nil
@@ -98,7 +98,7 @@ func mulInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	_, err := nodes.Map(func(n gol.Node) (gol.Node, error) {
 		ni, ok := n.(gol.NodeInt)
 		if !ok {
-			return nil, fmt.Errorf("Non-int passed to addInt")
+			return nil, gol.NodeErrorf(nodes, "Non-int passed to addInt")
 		}
 		prod *= ni.Value()
 		return nil, nil
@@ -111,12 +111,12 @@ func mulInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 
 func subInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() == 0 {
-		return nil, fmt.Errorf("Arity-error: expected > 0 args")
+		return nil, gol.NodeErrorf(nodes, "Arity-error: expected > 0 args")
 	}
 
 	ni, ok := nodes.First().(gol.NodeInt)
 	if !ok {
-		return nil, fmt.Errorf("Non-int passed to subInt")
+		return nil, gol.NodeErrorf(nodes, "Non-int passed to subInt")
 	}
 	result := ni.Value()
 	if nodes.Len() == 1 {
@@ -127,7 +127,7 @@ func subInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	_, err := rest.Map(func(n gol.Node) (gol.Node, error) {
 		ni, ok := n.(gol.NodeInt)
 		if !ok {
-			return nil, fmt.Errorf("Non-int passed to subInt")
+			return nil, gol.NodeErrorf(nodes, "Non-int passed to subInt")
 		}
 		result -= ni.Value()
 		return nil, nil
@@ -140,7 +140,7 @@ func subInt(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 
 func display(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() != 1 {
-		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+		return nil, gol.NodeErrorf(nodes, "Arity-error: expected == 1 args")
 	}
 
 	s := nodes.First().String()
@@ -154,11 +154,11 @@ func list(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 
 func length(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() != 1 {
-		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+		return nil, gol.NodeErrorf(nodes, "Arity-error: expected == 1 args")
 	}
 	nl, ok := nodes.First().(gol.NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Non-list passed to lemgth")
+		return nil, gol.NodeErrorf(nodes, "Non-list passed to lemgth")
 	}
 
 	return gol.NewNodeInt(int64(nl.Len())), nil
@@ -166,11 +166,11 @@ func length(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 
 func reverse(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() != 1 {
-		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+		return nil, gol.NodeErrorf(nodes, "Arity-error: expected == 1 args")
 	}
 	nl, ok := nodes.First().(gol.NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Non-list passed to reverse")
+		return nil, gol.NodeErrorf(nodes, "Non-list passed to reverse")
 	}
 
 	return nl.Reverse(), nil
@@ -181,13 +181,13 @@ func listAppend(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	rev := nodes.Reverse()
 	ret, ok := rev.First().(gol.NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Non-list passed to append: %s %T", ret, ret)
+		return nil, gol.NodeErrorf(nodes, "Non-list passed to append: %s %T", ret, ret)
 	}
 
 	_, err := rev.Rest().Map(func(child gol.Node) (gol.Node, error) {
 		l, ok := child.(gol.NodeList)
 		if !ok {
-			return nil, fmt.Errorf("Non-list passed to append: %s %T", child, child)
+			return nil, gol.NodeErrorf(nodes, "Non-list passed to append: %s %T", child, child)
 		}
 		l.Reverse().Map(func(lChild gol.Node) (gol.Node, error) {
 			ret = ret.Cons(lChild)
@@ -206,7 +206,7 @@ func apply(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	args := nodes.Reverse()
 	l, ok := args.First().(gol.NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Non-list passed as last arg to apply")
+		return nil, gol.NodeErrorf(nodes, "Non-list passed as last arg to apply")
 	}
 	args.Rest().Map(func(child gol.Node) (gol.Node, error) {
 		l = l.Cons(child)
@@ -218,11 +218,11 @@ func apply(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 
 func zerop(e *Evaluator, nodes gol.NodeList) (gol.Node, error) {
 	if nodes.Len() != 1 {
-		return nil, fmt.Errorf("Arity-error: expected == 1 args")
+		return nil, gol.NodeErrorf(nodes, "Arity-error: expected == 1 args")
 	}
 	ni, ok := nodes.First().(gol.NodeInt)
 	if !ok {
-		return nil, fmt.Errorf("Non-int passed to zero?")
+		return nil, gol.NodeErrorf(nodes, "Non-int passed to zero?")
 	}
 	if ni.Value() == 0 {
 		return gol.NODE_TRUE, nil
