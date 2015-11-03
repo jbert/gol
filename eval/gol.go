@@ -27,28 +27,12 @@ func (g *Gol) EvalFile(fname string) (gol.Node, error) {
 	return g.EvalReader(fname, f)
 }
 
-type ParseError struct {
-	error
-}
-
-func (pe ParseError) Error() string {
-	return fmt.Sprintf("Parse error: %s", pe.error)
-}
-
 type EvalError struct {
 	error
 }
 
 func (ee EvalError) Error() string {
 	return fmt.Sprintf("Eval error: %s", ee.error)
-}
-
-type LexError struct {
-	error
-}
-
-func (le LexError) Error() string {
-	return fmt.Sprintf("Lex error: %s", le.error)
 }
 
 func (g *Gol) EvalProgram(srcName string, prog string) (gol.Node, error) {
@@ -81,12 +65,12 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 	p := gol.NewParser(l.Tokens)
 	nodeTree, parseErr := p.Parse()
 	if parseErr != nil {
-		return nil, ParseError{parseErr}
+		return nil, parseErr
 	}
 
 	nodeTree, parseErr = gol.Transform(nodeTree)
 	if parseErr != nil {
-		return nil, ParseError{parseErr}
+		return nil, parseErr
 	}
 
 	e := NewEvaluator(*env, os.Stdout, os.Stdin, os.Stderr)
@@ -95,7 +79,7 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 	// Hoover up any lexing errors
 	<-lexDone
 	if lexErr != nil {
-		return nil, LexError{lexErr}
+		return nil, lexErr
 	}
 
 	if err != nil {
