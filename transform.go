@@ -1,7 +1,5 @@
 package gol
 
-import "fmt"
-
 func Transform(node Node) (Node, error) {
 	switch n := node.(type) {
 	case NodeList:
@@ -56,14 +54,14 @@ func transformList(n NodeList) (Node, error) {
 	}
 	ret, err := transformNodes(n)
 	if err != nil {
-		return nil, err
+		return nil, NodeErrorf(first, "%s", err)
 	}
 	return ret, nil
 }
 
 func transformQuasiQuote(n NodeList) (Node, error) {
 	if n.Len() != 2 {
-		return nil, fmt.Errorf("Bad quasiquote expression - more than one arg")
+		return nil, NodeErrorf(n, "Bad quasiquote expression - more than one arg")
 	}
 	child, err := Transform(n.Rest().First())
 	if err != nil {
@@ -74,7 +72,7 @@ func transformQuasiQuote(n NodeList) (Node, error) {
 
 func transformQuote(n NodeList) (Node, error) {
 	if n.Len() != 2 {
-		return nil, fmt.Errorf("Bad quote expression - more than one arg")
+		return nil, NodeErrorf(n, "Bad quote expression - more than one arg")
 	}
 	child, err := Transform(n.Rest().First())
 	if err != nil {
@@ -85,7 +83,7 @@ func transformQuote(n NodeList) (Node, error) {
 
 func transformUnQuote(n NodeList) (Node, error) {
 	if n.Len() != 2 {
-		return nil, fmt.Errorf("Bad quote expression - more than one arg")
+		return nil, NodeErrorf(n, "Bad quote expression - more than one arg")
 	}
 	child, err := Transform(n.Rest().First())
 	if err != nil {
@@ -96,7 +94,7 @@ func transformUnQuote(n NodeList) (Node, error) {
 
 func transformIf(n NodeList) (Node, error) {
 	if n.Len() != 4 {
-		return nil, fmt.Errorf("Bad if expression - missing test or t/f branch")
+		return nil, NodeErrorf(n, "Bad if expression - missing test or t/f branch")
 	}
 	children, err := transformNodes(n.Rest())
 	if err != nil {
@@ -112,7 +110,7 @@ func transformIf(n NodeList) (Node, error) {
 
 func transformSet(n NodeList) (Node, error) {
 	if n.Len() != 3 {
-		return nil, fmt.Errorf("Bad set! expression - missing id or value")
+		return nil, NodeErrorf(n, "Bad set! expression - missing id or value")
 	}
 	children, err := transformNodes(n.Rest())
 	if err != nil {
@@ -120,7 +118,7 @@ func transformSet(n NodeList) (Node, error) {
 	}
 	id, ok := children.First().(NodeIdentifier)
 	if !ok {
-		return nil, fmt.Errorf("Bad set! expression - non-identifier")
+		return nil, NodeErrorf(n, "Bad set! expression - non-identifier")
 	}
 	return NodeSet{
 		NodeList: n,
@@ -131,7 +129,7 @@ func transformSet(n NodeList) (Node, error) {
 
 func transformError(n NodeList) (Node, error) {
 	if n.Len() != 2 {
-		return nil, fmt.Errorf("Bad error expression - exactly one string required")
+		return nil, NodeErrorf(n, "Bad error expression - exactly one string required")
 	}
 	return NodeError{n.Nth(1), n.Nth(1).String()}, nil
 }
@@ -157,7 +155,7 @@ func transformDefine(n NodeList) (Node, error) {
 
 	id, ok := n.Nth(1).(NodeIdentifier)
 	if !ok {
-		return nil, fmt.Errorf("Bad define expression - invalid identifier type %T", n.Nth(1))
+		return nil, NodeErrorf(n, "Bad define expression - invalid identifier type %T", n.Nth(1))
 	}
 
 	// Implicit progn for remaining children
@@ -176,7 +174,7 @@ func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
 	//		fmt.Printf("define lambda: %s\n", n)
 	//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
 	if IDAndArgs.Len() == 0 {
-		return nil, fmt.Errorf("Bad func define expression - no name")
+		return nil, NodeErrorf(n, "Bad func define expression - no name")
 	}
 	id := IDAndArgs.First()
 	args := IDAndArgs.Rest()
@@ -205,24 +203,24 @@ func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
 
 func transformLet(n NodeList) (Node, error) {
 	if n.Len() < 3 {
-		return nil, fmt.Errorf("Bad let expression - missing bindings or body")
+		return nil, NodeErrorf(n, "Bad let expression - missing bindings or body")
 	}
 	nLet := NodeLet{NodeList: n, Bindings: make(map[string]Node)}
 	bindings, ok := n.Nth(1).(NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Bad let expression - bindings must be a list")
+		return nil, NodeErrorf(n, "Bad let expression - bindings must be a list")
 	}
 	_, err := bindings.Map(func(pairNode Node) (Node, error) {
 		pair, ok := pairNode.(NodeList)
 		if !ok {
-			return nil, fmt.Errorf("Bad let expression - bindings must be pairs")
+			return nil, NodeErrorf(n, "Bad let expression - bindings must be pairs")
 		}
 		if pair.Len() != 2 {
-			return nil, fmt.Errorf("Bad let expression - bindings must be pairs")
+			return nil, NodeErrorf(n, "Bad let expression - bindings must be pairs")
 		}
 		id, ok := pair.First().(NodeIdentifier)
 		if !ok {
-			return nil, fmt.Errorf("Bad let expression - invalid identifier")
+			return nil, NodeErrorf(n, "Bad let expression - invalid identifier")
 		}
 		var err error
 		nLet.Bindings[id.String()], err = Transform(pair.Nth(1))
@@ -245,16 +243,16 @@ func transformLet(n NodeList) (Node, error) {
 
 func transformLambda(n NodeList) (Node, error) {
 	if n.Len() < 3 {
-		return nil, fmt.Errorf("Bad lambda expression - missing args or body [len %d]: %s", n.Len(), n)
+		return nil, NodeErrorf(n, "Bad lambda expression - missing args or body [len %d]: %s", n.Len(), n)
 	}
 	args, ok := n.Nth(1).(NodeList)
 	if !ok {
-		return nil, fmt.Errorf("Bad lambda expression - args must be a list")
+		return nil, NodeErrorf(n, "Bad lambda expression - args must be a list")
 	}
 	_, err := args.Map(func(argNode Node) (Node, error) {
 		_, ok := argNode.(NodeIdentifier)
 		if !ok {
-			return nil, fmt.Errorf("Bad lambda expression - arg must be identifier")
+			return nil, NodeErrorf(n, "Bad lambda expression - arg must be identifier")
 		}
 		return nil, nil
 	})
