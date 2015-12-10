@@ -1,12 +1,25 @@
+- change emit to return strings
+	- since we need to interpolate in different places
+
+- types:
+	- start with everythings an int64
+	- don't use dynamic types in the compiled output, use static
+		- interface{} where needed (e.g. display)
+	- add type context
+	- generate errors
+
 DONE - refactor:
 	- all AST types in one place
 
 DONE - add position information to all errors
 
+- pull out parseFile/parseReader and call from eval and golang
+
 - make backend pluggable
 	- consumes AST
 		- go?
-		- asm
+		- llvm?
+		- asm?
 		- perl?
 		- scheme?
 
