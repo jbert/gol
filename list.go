@@ -68,6 +68,7 @@ func (nl NodeList) String() string {
 		first = false
 
 		s = append(s, n.Car.String()...)
+		//		s = append(s, []byte(fmt.Sprintf(" [%T]", n.Car))...)
 
 		var ok bool
 		n, ok = n.Cdr.(NodePair)
