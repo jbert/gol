@@ -1,11 +1,13 @@
 package golang
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"text/template"
 
 	"github.com/jbert/gol"
@@ -39,6 +41,7 @@ func CompileReader(filename string, r io.Reader, outFilename string) error {
 	// We have a basic parse tree, decorate it with additional
 	// node information
 	nodeTree, parseErr = gol.Transform(nodeTree)
+	//	fmt.Printf("TRANSFORM: %s\n", nodeTree)
 	if parseErr != nil {
 		return parseErr
 	}
@@ -66,7 +69,6 @@ type GolangBackend struct {
 	parseTree   gol.Node
 	tmpDir      string
 	symbolIndex int
-	w           io.Writer
 	funcDefns   []string
 }
 
@@ -88,18 +90,31 @@ func (gb *GolangBackend) CompileTo(outFilename string) error {
 		return fmt.Errorf("Failded to create file [%s]: %s", tmpGoFilename, err)
 	}
 	defer f.Close()
-	gb.w = f
-	defer os.Remove(tmpGoFilename)
+	//defer os.Remove(tmpGoFilename)
 
-	err = gb.writePreamble()
+	preamble, err := gb.compilePreamble()
+	if err != nil {
+		return fmt.Errorf("Failed to make preamble: %s", err)
+	}
+	_, err = io.WriteString(f, preamble)
 	if err != nil {
 		return fmt.Errorf("Failed to write preamble: %s", err)
 	}
-	err = gb.write()
+
+	code, err := gb.compileBody()
 	if err != nil {
-		return fmt.Errorf("Failed to write go code : %s", err)
+		return fmt.Errorf("Failed to compile to go code : %s", err)
 	}
-	err = gb.writePostamble()
+	_, err = io.WriteString(f, code)
+	if err != nil {
+		return fmt.Errorf("Failed to write go code: %s", err)
+	}
+
+	postamble, err := gb.compilePostamble()
+	if err != nil {
+		return fmt.Errorf("Failed to write postamble: %s", err)
+	}
+	_, err = io.WriteString(f, postamble)
 	if err != nil {
 		return fmt.Errorf("Failed to write postamble: %s", err)
 	}
@@ -116,15 +131,21 @@ func (gb *GolangBackend) neededPackages() []string {
 	return []string{"fmt"}
 }
 
-func (gb *GolangBackend) writePreamble() error {
+func (gb *GolangBackend) compilePreamble() (string, error) {
 	info := struct {
 		Packages []string
 	}{
 		Packages: gb.neededPackages(),
 	}
 	tmpl := template.Must(template.New("preamble").Parse(templatePreamble))
-	err := tmpl.Execute(gb.w, info)
-	return err
+
+	buf := &bytes.Buffer{}
+	err := tmpl.Execute(buf, info)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
 
 var templatePreamble = `package main
@@ -136,48 +157,120 @@ import (
 func main() {
 `
 
-func (gb *GolangBackend) write() error {
+func (gb *GolangBackend) compileBody() (string, error) {
 	node, ok := gb.parseTree.(gol.NodeProgn)
 	if !ok {
-		return fmt.Errorf("Tree isn't a progn")
+		return "", fmt.Errorf("Tree isn't a progn")
 	}
-	gb.writeProgn(node)
-	return nil
+	s, err := gb.compile(node)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(`
+	fmt.Printf("%%d\n", %s)
+`, s), nil
 }
 
-func (gb *GolangBackend) emit(s string, rest ...interface{}) {
-	_, err := fmt.Fprintf(gb.w, s, rest...)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to emit compiled output: %s\n", err))
+func (gb *GolangBackend) compile(node gol.Node) (string, error) {
+	switch n := node.(type) {
+	case gol.NodeProgn:
+		return gb.compileProgn(n)
+	case gol.NodeInt:
+		return gb.compileInt(n)
+
+	case gol.NodeError:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeIdentifier:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeSymbol:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeString:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeBool:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeQuote:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeUnQuote:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeLambda:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeList:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeIf:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeSet:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeLet:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	case gol.NodeDefine:
+		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+	default:
+		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
+
 	}
+}
+
+func (gb *GolangBackend) compileInt(node gol.NodeInt) (string, error) {
+	return fmt.Sprintf("%d", node.Value()), nil
+}
+
+// Emit a function call, and stack the definition for the postamble
+func (gb *GolangBackend) compileProgn(node gol.NodeProgn) (string, error) {
+	funcName := gb.makeFunctionName()
+	if node.Len() == 0 {
+		return "", nil
+	}
+
+	first := true
+
+	lines := []string{fmt.Sprintf(`
+func %s() int64 {
+	var a int64
+`, funcName)}
+	_, err := node.Map(func(n gol.Node) (gol.Node, error) {
+		if first {
+			first = false
+			return nil, nil
+		}
+		s, err := gb.compile(n)
+		if err != nil {
+			return nil, err
+		}
+		lines = append(lines, `a = `+s)
+		return nil, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	lines = append(lines, `
+	return a
+}
+`)
+
+	gb.saveFunc(strings.Join(lines, "\n"))
+	return fmt.Sprintf("%s()", funcName), nil
 }
 
 func (gb *GolangBackend) makeFunctionName() string {
 	gb.symbolIndex++
-	return fmt.Sprintf("func%d", gb.symbolIndex)
+	return fmt.Sprintf("func_%d", gb.symbolIndex)
 }
 
 func (gb *GolangBackend) saveFunc(s string) {
 	gb.funcDefns = append(gb.funcDefns, s)
 }
 
-// Emit a function call, and stack the definition for the postamble
-func (gb *GolangBackend) writeProgn(node gol.NodeProgn) error {
-	funcName := gb.makeFunctionName()
-	gb.emit("%s()\n", funcName)
-	gb.saveFunc(fmt.Sprintf(`func %s() { fmt.Printf("hi\n") }
-`, funcName))
-	return nil
-}
+func (gb *GolangBackend) compilePostamble() (string, error) {
+	buf := &bytes.Buffer{}
 
-func (gb *GolangBackend) writePostamble() error {
-	gb.emit("}\n")
+	buf.WriteString("}\n")
 	for _, s := range gb.funcDefns {
-		gb.emit("\n")
-		gb.emit(s)
-		gb.emit("\n")
+		buf.WriteString("\n")
+		buf.WriteString(s)
+
+		buf.WriteString("\n")
 	}
-	return nil
+	return buf.String(), nil
 }
 
 func (gb *GolangBackend) buildGo(goFilename string, outFilename string) error {

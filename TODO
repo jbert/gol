@@ -4,7 +4,7 @@
 - types:
 	- start with everythings an int64
 	- don't use dynamic types in the compiled output, use static
-		- interface{} where needed (e.g. display)
+		- interface{} where needed (e.g. display)t :e g
 	- add type context
 	- generate errors
 
