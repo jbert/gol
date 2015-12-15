@@ -2,6 +2,17 @@ package gol
 
 import "fmt"
 
+func (nl NodeList) Foreach(f func(n Node) error) error {
+	_, err := nl.Map(func(n Node) (Node, error) {
+		err := f(n)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	})
+	return err
+}
+
 func (nl NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {
 	p := nl.children
 	res := nl
