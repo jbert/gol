@@ -1,6 +1,15 @@
 DONE - change emit to return strings
 	- since we need to interpolate in different places
 
+- variable scope
+	- either use nested lambdas everywhere
+		- including progn, nodelambda
+	- or carry an idea of what is in scope around
+		- and pass it through any generated calls
+
+- lambda/let
+	- write one in terms of the other
+
 - types:
 	- start with everythings an int64
 	- don't use dynamic types in the compiled output, use static

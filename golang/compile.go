@@ -87,7 +87,7 @@ func (gb *GolangBackend) CompileTo(outFilename string) error {
 	tmpGoFilename := tempFileName("go")
 	f, err := os.Create(tmpGoFilename)
 	if err != nil {
-		return fmt.Errorf("Failded to create file [%s]: %s", tmpGoFilename, err)
+		return fmt.Errorf("Failed to create file [%s]: %s", tmpGoFilename, err)
 	}
 	defer f.Close()
 	//defer os.Remove(tmpGoFilename)
@@ -126,7 +126,7 @@ func (gb *GolangBackend) CompileTo(outFilename string) error {
 
 	err = gb.buildGo(tmpGoFilename, outFilename)
 	if err != nil {
-		return fmt.Errorf("Failded to build go file: %s", err)
+		return fmt.Errorf("Failed to build go file: %s", err)
 	}
 
 	return nil
@@ -184,10 +184,12 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return gb.compileInt(n)
 	case gol.NodeList:
 		return gb.compileList(n)
+	case gol.NodeLet:
+		return gb.compileLet(n)
+	case gol.NodeIdentifier:
+		return gb.compileIdentifier(n)
 
 	case gol.NodeError:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeIdentifier:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeSymbol:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -205,14 +207,39 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeSet:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeLet:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeDefine:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	default:
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
+}
+
+func (gb *GolangBackend) compileIdentifier(ni gol.NodeIdentifier) (string, error) {
+	return mangleIdentifier(ni.String()), nil
+}
+
+func (gb *GolangBackend) compileLet(nl gol.NodeLet) (string, error) {
+	args := []string{}
+	vals := []string{}
+
+	for k, vNode := range nl.Bindings {
+		args = append(args, fmt.Sprintf("%s int64", mangleIdentifier(k)))
+		val, err := gb.compile(vNode)
+		if err != nil {
+			return "", err
+		}
+		vals = append(vals, val)
+	}
+
+	s := "func" + "(" + strings.Join(args, ", ") + ") int64 {"
+	body, err := gb.compile(nl.Body)
+	if err != nil {
+		return "", err
+	}
+	s += "return " + body
+	s += "}(" + strings.Join(vals, ", ") + ")"
+	return s, nil
 }
 
 func (gb *GolangBackend) compileList(nl gol.NodeList) (string, error) {
@@ -229,7 +256,7 @@ func (gb *GolangBackend) compileList(nl gol.NodeList) (string, error) {
 	}
 }
 
-func mangleFuncName(s string) string {
+func mangleIdentifier(s string) string {
 	s = strings.Replace(s, "+", "__PLUS__", -1)
 	s = strings.Replace(s, "-", "__MINUS__", -1)
 	return s
@@ -237,15 +264,15 @@ func mangleFuncName(s string) string {
 
 func (gb *GolangBackend) compileFuncCall(funcNameNode gol.NodeIdentifier, argNodes gol.NodeList) (string, error) {
 
-	funcName := mangleFuncName(funcNameNode.String())
+	funcName := mangleIdentifier(funcNameNode.String())
 	args := []string{}
-	_, err := argNodes.Map(func(n gol.Node) (gol.Node, error) {
+	err := argNodes.Foreach(func(n gol.Node) error {
 		nStr, err := gb.compile(n)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		args = append(args, nStr)
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return "", err
@@ -264,44 +291,35 @@ func (gb *GolangBackend) compileInt(ni gol.NodeInt) (string, error) {
 
 // Emit a function call, and stack the definition for the postamble
 func (gb *GolangBackend) compileProgn(progn gol.NodeProgn) (string, error) {
-	funcName := gb.makeFunctionName()
 	if progn.Len() == 0 {
 		return "", nil
 	}
 
 	first := true
 
-	lines := []string{fmt.Sprintf(`
-func %s() int64 {
+	lines := []string{`func() int64 {
 	var a int64
-`, funcName)}
-	_, err := progn.Map(func(n gol.Node) (gol.Node, error) {
+`}
+	err := progn.Foreach(func(n gol.Node) error {
 		if first {
 			first = false
-			return nil, nil
+			return nil
 		}
 		s, err := gb.compile(n)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		lines = append(lines, `a = `+s)
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return "", err
 	}
 	lines = append(lines, `
 	return a
-}
-`)
+}()`)
 
-	gb.saveFunc(strings.Join(lines, "\n"))
-	return fmt.Sprintf("%s()", funcName), nil
-}
-
-func (gb *GolangBackend) makeFunctionName() string {
-	gb.symbolIndex++
-	return fmt.Sprintf("func_%d", gb.symbolIndex)
+	return strings.Join(lines, "\n"), nil
 }
 
 func (gb *GolangBackend) saveFunc(s string) {
@@ -338,6 +356,17 @@ func __PLUS__(args ...int64) int64 {
 		sum += n
 	}
 	return sum
+}
+
+func __MINUS__(args ...int64) int64 {
+	if len(args) < 2 {
+		panic(fmt.Sprintf("Less than 2 args to numeric -"))
+	}
+	total := args[0]
+	for _, n := range args[1:] {
+		total -= n
+	}
+	return total
 }
 
 `
