@@ -119,6 +119,11 @@ func (gb *GolangBackend) CompileTo(outFilename string) error {
 		return fmt.Errorf("Failed to write postamble: %s", err)
 	}
 
+	_, err = io.WriteString(f, gb.standardLib())
+	if err != nil {
+		return fmt.Errorf("Failed to write standard lib: %s", err)
+	}
+
 	err = gb.buildGo(tmpGoFilename, outFilename)
 	if err != nil {
 		return fmt.Errorf("Failded to build go file: %s", err)
@@ -177,6 +182,8 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return gb.compileProgn(n)
 	case gol.NodeInt:
 		return gb.compileInt(n)
+	case gol.NodeList:
+		return gb.compileList(n)
 
 	case gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -194,8 +201,6 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeLambda:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeList:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeIf:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeSet:
@@ -210,14 +215,57 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	}
 }
 
-func (gb *GolangBackend) compileInt(node gol.NodeInt) (string, error) {
-	return fmt.Sprintf("%d", node.Value()), nil
+func (gb *GolangBackend) compileList(nl gol.NodeList) (string, error) {
+	if nl.Len() == 0 {
+		return "", gol.NodeErrorf(nl, "empty application")
+	}
+	switch fst := nl.First().(type) {
+	case gol.NodeIdentifier:
+		return gb.compileFuncCall(fst, nl.Rest())
+	case gol.NodeLambda:
+		return gb.compileLambda(nl)
+	default:
+		return "", fmt.Errorf("Non-applicable in head position: %T", fst)
+	}
+}
+
+func mangleFuncName(s string) string {
+	s = strings.Replace(s, "+", "__PLUS__", -1)
+	s = strings.Replace(s, "-", "__MINUS__", -1)
+	return s
+}
+
+func (gb *GolangBackend) compileFuncCall(funcNameNode gol.NodeIdentifier, argNodes gol.NodeList) (string, error) {
+
+	funcName := mangleFuncName(funcNameNode.String())
+	args := []string{}
+	_, err := argNodes.Map(func(n gol.Node) (gol.Node, error) {
+		nStr, err := gb.compile(n)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, nStr)
+		return nil, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	s := funcName + "(" + strings.Join(args, ", ") + ")"
+	return s, nil
+}
+
+func (gb *GolangBackend) compileLambda(nl gol.NodeList) (string, error) {
+	panic("TODO - compileLambda")
+}
+
+func (gb *GolangBackend) compileInt(ni gol.NodeInt) (string, error) {
+	return fmt.Sprintf("%d", ni.Value()), nil
 }
 
 // Emit a function call, and stack the definition for the postamble
-func (gb *GolangBackend) compileProgn(node gol.NodeProgn) (string, error) {
+func (gb *GolangBackend) compileProgn(progn gol.NodeProgn) (string, error) {
 	funcName := gb.makeFunctionName()
-	if node.Len() == 0 {
+	if progn.Len() == 0 {
 		return "", nil
 	}
 
@@ -227,7 +275,7 @@ func (gb *GolangBackend) compileProgn(node gol.NodeProgn) (string, error) {
 func %s() int64 {
 	var a int64
 `, funcName)}
-	_, err := node.Map(func(n gol.Node) (gol.Node, error) {
+	_, err := progn.Map(func(n gol.Node) (gol.Node, error) {
 		if first {
 			first = false
 			return nil, nil
@@ -280,4 +328,17 @@ func (gb *GolangBackend) buildGo(goFilename string, outFilename string) error {
 		return fmt.Errorf("Failed to compile [%s]\n%s\n\n", err, output)
 	}
 	return nil
+}
+
+func (gb *GolangBackend) standardLib() string {
+	return `
+func __PLUS__(args ...int64) int64 {
+	var sum int64
+	for _, n := range args {
+		sum += n
+	}
+	return sum
+}
+
+`
 }

@@ -1,4 +1,4 @@
-- change emit to return strings
+DONE - change emit to return strings
 	- since we need to interpolate in different places
 
 - types:
