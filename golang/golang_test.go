@@ -28,6 +28,12 @@ func TestGolBasicTestCases(t *testing.T) {
 
 func runCases(t *testing.T, testCases []test.TestCase) {
 
+	runFrom := 0
+	runFromStr := os.Getenv("GOL_TEST_RUNFROM")
+	if runFromStr != "" {
+		runFrom, _ = strconv.Atoi(runFromStr)
+	}
+
 	runTo := len(testCases)
 	runToStr := os.Getenv("GOL_TEST_RUNTO")
 	if runToStr != "" {
@@ -35,6 +41,9 @@ func runCases(t *testing.T, testCases []test.TestCase) {
 	}
 CASE:
 	for i, tc := range testCases {
+		if i < runFrom {
+			continue CASE
+		}
 		if i > runTo {
 			break CASE
 		}
