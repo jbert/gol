@@ -9,7 +9,7 @@ type Primitive int
 
 const (
 	Unknown Primitive = 0
-	Num     Primitive = iota
+	Int     Primitive = iota
 	Bool
 	Symbol
 	String
@@ -23,8 +23,8 @@ func (p Primitive) String() string {
 	switch p {
 	case Unknown:
 		return "Unknown"
-	case Num:
-		return "Num"
+	case Int:
+		return "Int"
 	case Bool:
 		return "Bool"
 	case Symbol:
@@ -52,4 +52,17 @@ func (f Func) String() string {
 
 func NewFunc(args []Type, result Type) Func {
 	return Func{Args: args, Result: result}
+}
+
+type Pair struct {
+	car Type
+	cdr Type
+}
+
+func NewPair(car Type, cdr Type) Pair {
+	return Pair{car: car, cdr: cdr}
+}
+
+func (p Pair) String() string {
+	return fmt.Sprintf("Pair{%s,%s}", p.car.String(), p.cdr.String())
 }

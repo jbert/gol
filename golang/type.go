@@ -22,7 +22,7 @@ func golangStringForPrimitive(p typ.Primitive) string {
 	switch p {
 	case typ.Unknown:
 		panic("Can't get golang string of 'Unknown' type")
-	case typ.Num:
+	case typ.Int:
 		return "int64"
 	case typ.Bool:
 		return "bool"

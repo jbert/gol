@@ -1,3 +1,45 @@
+- need a way to insert function argument names into the function type for func definition?
+	- no, not for typing. only for emitLambda, which can do it's own thing
+
+- to compile:
+	(let ((x (- 1 2))) ... )
+	we need to:
+	- work out the type of (- 1 2), a list
+		- which involves having an emvironment of identifier -> type to give us a type for -
+		- then assuming that we have function application
+			- error if '-' does not have Func type
+			- (optional? error if list does not match func args)
+			- type of (- 1 2) is then return type of func
+	- so node.Type() depends on a type environment. Goes as arg?
+
+- need a way to get the typ.Type of a node
+	- which can start with simple rules but needs to scale to an inference engine
+	- add Type() typ.Type to node interface and call it
+	- define for the types we can (primitives, progn, func, builtins)
+	- define panic() placeholders for others
+	- see how far we get before needing inference engine
+
+- change compile to use the typ.Type instead of int64 when emitting golang code
+
+- get (let ((- +)) ...) to pass by embedding the typ.Type of builtins as part of their definition
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 DONE - change emit to return strings
 	- since we need to interpolate in different places
 

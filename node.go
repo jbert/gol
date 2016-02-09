@@ -1,13 +1,26 @@
 package gol
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/jbert/gol/typ"
+)
 
 type NodeBase struct {
+	t typ.Type
+}
+
+func (nb NodeBase) Type(e typ.Env) typ.Type {
+	// Catch at runtime for now - when we have some inference
+	// then we can return the stored type
+	//	panic(fmt.Sprintf("Unimplemented Type: %T", nb))
+	return nb.t
 }
 
 type Node interface {
 	String() string
 	Pos() Position
+	Type(e typ.Env) typ.Type
 }
 
 type nodeAtom struct {
@@ -28,15 +41,27 @@ func NewNodeInt(n int64) Node {
 	return NodeInt{value: n}
 }
 
-func (nn NodeInt) String() string {
-	return fmt.Sprintf("%d", nn.value)
+func (ni NodeInt) String() string {
+	return fmt.Sprintf("%d", ni.value)
 }
-func (nn NodeInt) Value() int64 {
-	return nn.value
+func (ni NodeInt) Value() int64 {
+	return ni.value
+}
+func (ni NodeInt) Type(e typ.Env) typ.Type {
+	return typ.Int
 }
 
 type NodeIdentifier struct {
 	nodeAtom
+}
+
+func (ni NodeIdentifier) Type(e typ.Env) typ.Type {
+	fmt.Printf("Lookup %s\n", ni.String())
+	t, err := e.Lookup(ni.String())
+	if err != nil {
+		return typ.Unknown
+	}
+	return t
 }
 
 func makeIdentifier(s string) NodeIdentifier {
@@ -49,11 +74,25 @@ func makeIdentifier(s string) NodeIdentifier {
 type NodeSymbol struct {
 	nodeAtom
 }
+
+func (ns NodeSymbol) Type(e typ.Env) typ.Type {
+	return typ.Symbol
+}
+
 type NodeString struct {
 	nodeAtom
 }
+
+func (ns NodeString) Type(e typ.Env) typ.Type {
+	return typ.String
+}
+
 type NodeBool struct {
 	nodeAtom
+}
+
+func (nb NodeBool) Type(e typ.Env) typ.Type {
+	return typ.Bool
 }
 
 var NODE_FALSE = NodeBool{
@@ -120,6 +159,14 @@ type NodePair struct {
 	Cdr Node
 }
 
+func (np NodePair) Type(e typ.Env) typ.Type {
+	// TODO: return an and-type:
+	// - List[car.Type()]			// homogenous list
+	// - List[datum]			// heterogenous list
+	// - Pair[car.Type(), cdr.Type()]	// Pair
+	return typ.NewPair(np.Car.Type(e), np.Cdr.Type(e))
+}
+
 func NewNodePair(car, cdr Node) NodePair {
 	return NodePair{Car: car, Cdr: cdr}
 }
@@ -155,6 +202,18 @@ func (nl NodeList) Pos() Position {
 	} else {
 		return nl.First().Pos()
 	}
+}
+
+func (nl NodeList) Type(e typ.Env) typ.Type {
+	headType := nl.First().Type(e)
+	fmt.Printf("Type of NL [0] (%s)\n", headType.String())
+	f, ok := headType.(typ.Func)
+	if !ok {
+		// TODO infer!
+		panic("Non-function in head position - can't infer type")
+	}
+	// TODO: validate args
+	return f.Result
 }
 
 // ----------------------------------------

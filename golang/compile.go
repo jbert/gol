@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/jbert/gol"
+	"github.com/jbert/gol/typ"
 )
 
 // TODO: pull this out as ParseFile and call from Evaluatator too
@@ -66,14 +67,16 @@ func CompileFile(filename string, outFilename string) error {
 }
 
 type GolangBackend struct {
-	parseTree   gol.Node
-	tmpDir      string
-	symbolIndex int
-	funcDefns   []string
+	parseTree gol.Node
+	funcDefns []string
+	typeEnv   typ.Env
 }
 
 func NewGolangBackend(parseTree gol.Node) *GolangBackend {
-	gb := GolangBackend{parseTree: parseTree}
+	gb := GolangBackend{
+		parseTree: parseTree,
+		typeEnv:   newDefaultTypeEnv(),
+	}
 	return &gb
 }
 
@@ -224,7 +227,8 @@ func (gb *GolangBackend) compileLet(nl gol.NodeLet) (string, error) {
 	vals := []string{}
 
 	for k, vNode := range nl.Bindings {
-		args = append(args, fmt.Sprintf("%s int64", mangleIdentifier(k)))
+		golangType := golangStringForType(vNode.Type(gb.typeEnv))
+		args = append(args, fmt.Sprintf("%s %s", mangleIdentifier(k), golangType))
 		val, err := gb.compile(vNode)
 		if err != nil {
 			return "", err
@@ -370,4 +374,14 @@ func __MINUS__(args ...int64) int64 {
 }
 
 `
+}
+
+func newDefaultTypeEnv() typ.Env {
+	e := typ.NewEnv()
+	ints := []typ.Type{typ.Int, typ.Int}
+	f := typ.Frame{
+		"-": typ.NewFunc(ints, typ.Int),
+		"+": typ.NewFunc(ints, typ.Int),
+	}
+	return e.WithFrame(f)
 }

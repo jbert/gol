@@ -11,16 +11,16 @@ func TestGolangTypeString(t *testing.T) {
 		testType typ.Type
 		expected string
 	}{
-		{typ.Num, "int64"},
+		{typ.Int, "int64"},
 		{typ.String, "string"},
 		{typ.Bool, "bool"},
 		{typ.Symbol, "string"},
 		{typ.NewFunc([]typ.Type{typ.String}, typ.String), "func(string) string"},
 		{typ.NewFunc([]typ.Type{
 			typ.String,
-			typ.Num,
+			typ.Int,
 			typ.Bool,
-		}, typ.Num), "func(string,int64,bool) int64"},
+		}, typ.Int), "func(string,int64,bool) int64"},
 	}
 
 	for _, tc := range testCases {
