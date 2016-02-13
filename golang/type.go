@@ -13,6 +13,8 @@ func golangStringForType(t typ.Type) string {
 		return golangStringForPrimitive(ty)
 	case typ.Func:
 		return golangStringForFunc(ty)
+	case typ.Variadic:
+		return golangStringForVariadic(ty)
 	default:
 		panic("Unknown type")
 	}
@@ -42,4 +44,8 @@ func golangStringForFunc(f typ.Func) string {
 	}
 	result := golangStringForType(f.Result)
 	return fmt.Sprintf("func(%s) %s", strings.Join(args, ","), result)
+}
+
+func golangStringForVariadic(v typ.Variadic) string {
+	return fmt.Sprintf("...%s", golangStringForType(v.X))
 }

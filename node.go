@@ -56,7 +56,7 @@ type NodeIdentifier struct {
 }
 
 func (ni NodeIdentifier) Type(e typ.Env) typ.Type {
-	fmt.Printf("Lookup %s\n", ni.String())
+	//	fmt.Printf("Lookup %s\n", ni.String())
 	t, err := e.Lookup(ni.String())
 	if err != nil {
 		return typ.Unknown
@@ -206,7 +206,7 @@ func (nl NodeList) Pos() Position {
 
 func (nl NodeList) Type(e typ.Env) typ.Type {
 	headType := nl.First().Type(e)
-	fmt.Printf("Type of NL [0] (%s)\n", headType.String())
+	//	fmt.Printf("Type of NL [0] (%s)\n", headType.String())
 	f, ok := headType.(typ.Func)
 	if !ok {
 		// TODO infer!

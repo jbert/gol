@@ -378,7 +378,7 @@ func __MINUS__(args ...int64) int64 {
 
 func newDefaultTypeEnv() typ.Env {
 	e := typ.NewEnv()
-	ints := []typ.Type{typ.Int, typ.Int}
+	ints := []typ.Type{typ.NewVariadic(typ.Int)}
 	f := typ.Frame{
 		"-": typ.NewFunc(ints, typ.Int),
 		"+": typ.NewFunc(ints, typ.Int),

@@ -66,3 +66,15 @@ func NewPair(car Type, cdr Type) Pair {
 func (p Pair) String() string {
 	return fmt.Sprintf("Pair{%s,%s}", p.car.String(), p.cdr.String())
 }
+
+type Variadic struct {
+	X Type
+}
+
+func (v Variadic) String() string {
+	return fmt.Sprintf("Variadic{%s}", v.X)
+}
+
+func NewVariadic(t Type) Variadic {
+	return Variadic{t}
+}
