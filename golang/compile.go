@@ -185,6 +185,8 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return gb.compileProgn(n)
 	case gol.NodeInt:
 		return gb.compileInt(n)
+		//	case gol.NodeLambda:
+		//		return gb.compileLambda(n)
 	case gol.NodeList:
 		return gb.compileList(n)
 	case gol.NodeLet:
@@ -203,8 +205,6 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case gol.NodeQuote:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeUnQuote:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeLambda:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case gol.NodeIf:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -254,7 +254,7 @@ func (gb *GolangBackend) compileList(nl gol.NodeList) (string, error) {
 	case gol.NodeIdentifier:
 		return gb.compileFuncCall(fst, nl.Rest())
 	case gol.NodeLambda:
-		return gb.compileLambda(nl)
+		return gb.compileLambda(fst, nl.Rest())
 	default:
 		return "", fmt.Errorf("Non-applicable in head position: %T", fst)
 	}
@@ -285,8 +285,30 @@ func (gb *GolangBackend) compileFuncCall(funcNameNode gol.NodeIdentifier, argNod
 	return s, nil
 }
 
-func (gb *GolangBackend) compileLambda(nl gol.NodeList) (string, error) {
-	panic("TODO - compileLambda")
+func (gb *GolangBackend) compileLambda(nl gol.NodeLambda, vals gol.NodeList) (string, error) {
+	bindings := make(map[string]gol.Node)
+
+	args := nl.Args
+
+	if args.Len() != vals.Len() {
+		return "", fmt.Errorf("Wrong number of args for lambda. [%s] != [%s]",
+			args.String(), vals.String())
+	}
+
+	for vals.Len() > 0 {
+		id := args.First().String()
+		bindings[id] = vals.First()
+
+		vals = vals.Rest()
+		args = args.Rest()
+	}
+
+	letForLambda := gol.NodeLet{
+		NodeList: nl.NodeList,
+		Bindings: bindings,
+		Body:     nl.Body,
+	}
+	return gb.compileLet(letForLambda)
 }
 
 func (gb *GolangBackend) compileInt(ni gol.NodeInt) (string, error) {
