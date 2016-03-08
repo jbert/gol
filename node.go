@@ -210,7 +210,9 @@ func (nl NodeList) Type(e typ.Env) typ.Type {
 	f, ok := headType.(typ.Func)
 	if !ok {
 		// TODO infer!
-		panic("Non-function in head position - can't infer type")
+		panic(fmt.Sprintf("Non-function in head position - can't infer type: %T [%s]",
+			headType,
+			nl))
 	}
 	// TODO: validate args
 	return f.Result
@@ -223,6 +225,20 @@ type NodeLambda struct {
 	NodeList
 	Args NodeList
 	Body Node
+}
+
+func (nl NodeLambda) Type(e typ.Env) typ.Type {
+	argTypes := make([]typ.Type, nl.Args.Len())
+	i := 0
+	nl.Args.Foreach(func(n Node) error {
+		argTypes[i] = n.Type(e)
+		i++
+		return nil
+	})
+
+	resultType := nl.Body.Type(e)
+
+	return typ.NewFunc(argTypes, resultType)
 }
 
 type NodeUnQuote struct {
@@ -264,6 +280,10 @@ type NodeSet struct {
 
 type NodeProgn struct {
 	NodeList
+}
+
+func (np NodeProgn) Type(e typ.Env) typ.Type {
+	return np.Reverse().First().Type(e)
 }
 
 type NodeDefine struct {
