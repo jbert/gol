@@ -42,14 +42,16 @@ func CompileReader(filename string, r io.Reader, outFilename string) error {
 	// We have a basic parse tree, decorate it with additional
 	// node information
 	nodeTree, parseErr = gol.Transform(nodeTree)
-	//	fmt.Printf("TRANSFORM: %s\n", nodeTree)
 	if parseErr != nil {
 		return parseErr
 	}
 
-	// TODO -
 	gb := NewGolangBackend(nodeTree)
-	err := gb.CompileTo(outFilename)
+	err := gb.InferTypes()
+	if err != nil {
+		return err
+	}
+	err = gb.CompileTo(outFilename)
 	if err != nil {
 		return err
 	}
@@ -69,13 +71,11 @@ func CompileFile(filename string, outFilename string) error {
 type GolangBackend struct {
 	parseTree gol.Node
 	funcDefns []string
-	typeEnv   typ.Env
 }
 
 func NewGolangBackend(parseTree gol.Node) *GolangBackend {
 	gb := GolangBackend{
 		parseTree: parseTree,
-		typeEnv:   newDefaultTypeEnv(),
 	}
 	return &gb
 }
@@ -166,9 +166,9 @@ func main() {
 `
 
 func (gb *GolangBackend) compileBody() (string, error) {
-	node, ok := gb.parseTree.(gol.NodeProgn)
+	node, ok := gb.parseTree.(*gol.NodeProgn)
 	if !ok {
-		return "", fmt.Errorf("Tree isn't a progn")
+		return "", fmt.Errorf("Tree isn't a progn: %T", node)
 	}
 	s, err := gb.compile(node)
 	if err != nil {
@@ -181,36 +181,36 @@ func (gb *GolangBackend) compileBody() (string, error) {
 
 func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	switch n := node.(type) {
-	case gol.NodeProgn:
+	case *gol.NodeProgn:
 		return gb.compileProgn(n)
-	case gol.NodeInt:
+	case *gol.NodeInt:
 		return gb.compileInt(n)
 		//	case gol.NodeLambda:
 		//		return gb.compileLambda(n)
-	case gol.NodeList:
+	case *gol.NodeList:
 		return gb.compileList(n)
-	case gol.NodeLet:
+	case *gol.NodeLet:
 		return gb.compileLet(n)
-	case gol.NodeIdentifier:
+	case *gol.NodeIdentifier:
 		return gb.compileIdentifier(n)
 
-	case gol.NodeError:
+	case *gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeSymbol:
+	case *gol.NodeSymbol:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeString:
+	case *gol.NodeString:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeBool:
+	case *gol.NodeBool:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeQuote:
+	case *gol.NodeQuote:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeUnQuote:
+	case *gol.NodeUnQuote:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeIf:
+	case *gol.NodeIf:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeSet:
+	case *gol.NodeSet:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case gol.NodeDefine:
+	case *gol.NodeDefine:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	default:
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
@@ -218,16 +218,19 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	}
 }
 
-func (gb *GolangBackend) compileIdentifier(ni gol.NodeIdentifier) (string, error) {
+func (gb *GolangBackend) compileIdentifier(ni *gol.NodeIdentifier) (string, error) {
 	return mangleIdentifier(ni.String()), nil
 }
 
-func (gb *GolangBackend) compileLet(nl gol.NodeLet) (string, error) {
+func (gb *GolangBackend) compileLet(nl *gol.NodeLet) (string, error) {
 	args := []string{}
 	vals := []string{}
 
 	for k, vNode := range nl.Bindings {
-		golangType := golangStringForType(vNode.Type(gb.typeEnv))
+		golangType, err := golangStringForType(vNode.Type())
+		if err != nil {
+			return "", err
+		}
 		args = append(args, fmt.Sprintf("%s %s", mangleIdentifier(k), golangType))
 		val, err := gb.compile(vNode)
 		if err != nil {
@@ -236,7 +239,12 @@ func (gb *GolangBackend) compileLet(nl gol.NodeLet) (string, error) {
 		vals = append(vals, val)
 	}
 
-	s := "func" + "(" + strings.Join(args, ", ") + ") int64 {"
+	//	s := "func" + "(" + strings.Join(args, ", ") + ") int64 {"
+	golangRetType, err := golangStringForType(nl.Type())
+	if err != nil {
+		return "", err
+	}
+	s := fmt.Sprintf("func(%s) %s {", strings.Join(args, ", "), golangRetType)
 	body, err := gb.compile(nl.Body)
 	if err != nil {
 		return "", err
@@ -246,14 +254,14 @@ func (gb *GolangBackend) compileLet(nl gol.NodeLet) (string, error) {
 	return s, nil
 }
 
-func (gb *GolangBackend) compileList(nl gol.NodeList) (string, error) {
+func (gb *GolangBackend) compileList(nl *gol.NodeList) (string, error) {
 	if nl.Len() == 0 {
 		return "", gol.NodeErrorf(nl, "empty application")
 	}
 	switch fst := nl.First().(type) {
-	case gol.NodeIdentifier:
+	case *gol.NodeIdentifier:
 		return gb.compileFuncCall(fst, nl.Rest())
-	case gol.NodeLambda:
+	case *gol.NodeLambda:
 		return gb.compileLambda(fst, nl.Rest())
 	default:
 		return "", fmt.Errorf("Non-applicable in head position: %T", fst)
@@ -266,7 +274,7 @@ func mangleIdentifier(s string) string {
 	return s
 }
 
-func (gb *GolangBackend) compileFuncCall(funcNameNode gol.NodeIdentifier, argNodes gol.NodeList) (string, error) {
+func (gb *GolangBackend) compileFuncCall(funcNameNode *gol.NodeIdentifier, argNodes *gol.NodeList) (string, error) {
 
 	funcName := mangleIdentifier(funcNameNode.String())
 	args := []string{}
@@ -285,7 +293,7 @@ func (gb *GolangBackend) compileFuncCall(funcNameNode gol.NodeIdentifier, argNod
 	return s, nil
 }
 
-func (gb *GolangBackend) compileLambda(nl gol.NodeLambda, vals gol.NodeList) (string, error) {
+func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda, vals *gol.NodeList) (string, error) {
 	bindings := make(map[string]gol.Node)
 
 	args := nl.Args
@@ -303,7 +311,7 @@ func (gb *GolangBackend) compileLambda(nl gol.NodeLambda, vals gol.NodeList) (st
 		args = args.Rest()
 	}
 
-	letForLambda := gol.NodeLet{
+	letForLambda := &gol.NodeLet{
 		NodeList: nl.NodeList,
 		Bindings: bindings,
 		Body:     nl.Body,
@@ -311,22 +319,25 @@ func (gb *GolangBackend) compileLambda(nl gol.NodeLambda, vals gol.NodeList) (st
 	return gb.compileLet(letForLambda)
 }
 
-func (gb *GolangBackend) compileInt(ni gol.NodeInt) (string, error) {
+func (gb *GolangBackend) compileInt(ni *gol.NodeInt) (string, error) {
 	return fmt.Sprintf("%d", ni.Value()), nil
 }
 
 // Emit a function call, and stack the definition for the postamble
-func (gb *GolangBackend) compileProgn(progn gol.NodeProgn) (string, error) {
+func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	if progn.Len() == 0 {
 		return "", nil
 	}
 
 	first := true
 
-	lines := []string{`func() int64 {
-	var a int64
-`}
-	err := progn.Foreach(func(n gol.Node) error {
+	golangRetType, err := golangStringForType(progn.Type())
+	if err != nil {
+		return "", err
+	}
+	lines := []string{fmt.Sprintf("func() %s {", golangRetType)}
+
+	err = progn.ForeachLast(func(n gol.Node, last bool) error {
 		if first {
 			first = false
 			return nil
@@ -335,14 +346,16 @@ func (gb *GolangBackend) compileProgn(progn gol.NodeProgn) (string, error) {
 		if err != nil {
 			return err
 		}
-		lines = append(lines, `a = `+s)
+		if last {
+			s = "return " + s
+		}
+		lines = append(lines, s)
 		return nil
 	})
 	if err != nil {
 		return "", err
 	}
 	lines = append(lines, `
-	return a
 }()`)
 
 	return strings.Join(lines, "\n"), nil

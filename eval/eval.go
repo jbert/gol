@@ -29,23 +29,23 @@ func (e Evaluator) Quoting() bool {
 
 func (e *Evaluator) Eval(node gol.Node) (gol.Node, error) {
 	switch n := node.(type) {
-	case gol.NodeError:
+	case *gol.NodeError:
 		return nil, n
-	case gol.NodeIdentifier:
+	case *gol.NodeIdentifier:
 		value, err := e.Env.Lookup(n.String())
 		if err != nil {
 			return nil, gol.NodeErrorf(node, "Failed to find [%s]: %s", n.String(), err.Error())
 		}
 		return value, nil
-	case gol.NodeInt:
+	case *gol.NodeInt:
 		return n, nil
-	case gol.NodeSymbol:
+	case *gol.NodeSymbol:
 		return n, nil
-	case gol.NodeString:
+	case *gol.NodeString:
 		return n, nil
-	case gol.NodeBool:
+	case *gol.NodeBool:
 		return n, nil
-	case gol.NodeQuote:
+	case *gol.NodeQuote:
 		if n.Quasi {
 			e.nesting++
 			value, err := e.Eval(n.Arg)
@@ -53,42 +53,42 @@ func (e *Evaluator) Eval(node gol.Node) (gol.Node, error) {
 			return value, err
 		}
 		return n.Arg, nil
-	case gol.NodeUnQuote:
+	case *gol.NodeUnQuote:
 		e.nesting--
 		value, err := e.Eval(n.Arg)
 		e.nesting++
 		return value, err
-	case gol.NodeLambda:
+	case *gol.NodeLambda:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
 		return e.evalLambda(n)
-	case gol.NodeList:
+	case *gol.NodeList:
 		if e.Quoting() {
 			return e.evalList(n)
 		}
 		return e.evalList(n)
-	case gol.NodeIf:
+	case *gol.NodeIf:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
 		return e.evalIf(n)
-	case gol.NodeSet:
+	case *gol.NodeSet:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
 		return e.evalSet(n)
-	case gol.NodeLet:
+	case *gol.NodeLet:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
 		return e.evalLet(n)
-	case gol.NodeProgn:
+	case *gol.NodeProgn:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
 		return e.evalProgn(n)
-	case gol.NodeDefine:
+	case *gol.NodeDefine:
 		if e.Quoting() {
 			return e.evalList(n.NodeList)
 		}
@@ -99,7 +99,7 @@ func (e *Evaluator) Eval(node gol.Node) (gol.Node, error) {
 	}
 }
 
-func (e *Evaluator) evalDefine(nd gol.NodeDefine) (gol.Node, error) {
+func (e *Evaluator) evalDefine(nd *gol.NodeDefine) (gol.Node, error) {
 	evalValue, err := e.Eval(nd.Value)
 	if err != nil {
 		return nd, err
@@ -111,7 +111,7 @@ func (e *Evaluator) evalDefine(nd gol.NodeDefine) (gol.Node, error) {
 	return nd.Value, nil
 }
 
-func (e *Evaluator) evalSet(ns gol.NodeSet) (gol.Node, error) {
+func (e *Evaluator) evalSet(ns *gol.NodeSet) (gol.Node, error) {
 	value, err := e.Eval(ns.Value)
 	if err != nil {
 		return nil, err
@@ -121,12 +121,12 @@ func (e *Evaluator) evalSet(ns gol.NodeSet) (gol.Node, error) {
 	return value, nil
 }
 
-func (e *Evaluator) evalIf(ni gol.NodeIf) (gol.Node, error) {
+func (e *Evaluator) evalIf(ni *gol.NodeIf) (gol.Node, error) {
 	condition, err := e.Eval(ni.Condition)
 	if err != nil {
 		return nil, err
 	}
-	conditionBool, ok := condition.(gol.NodeBool)
+	conditionBool, ok := condition.(*gol.NodeBool)
 	if !ok {
 		return nil, gol.NodeErrorf(ni, "Non-boolean in 'if' condition")
 	}
@@ -137,7 +137,7 @@ func (e *Evaluator) evalIf(ni gol.NodeIf) (gol.Node, error) {
 	}
 }
 
-func (e *Evaluator) evalLet(nl gol.NodeLet) (gol.Node, error) {
+func (e *Evaluator) evalLet(nl *gol.NodeLet) (gol.Node, error) {
 
 	f := gol.Frame{}
 	oldEnv := e.Env
@@ -160,14 +160,14 @@ func (e *Evaluator) evalLet(nl gol.NodeLet) (gol.Node, error) {
 	return value, err
 }
 
-func (e *Evaluator) evalLambda(nl gol.NodeLambda) (gol.Node, error) {
-	return NodeProcedure{
+func (e *Evaluator) evalLambda(nl *gol.NodeLambda) (gol.Node, error) {
+	return &NodeProcedure{
 		NodeLambda: nl,
 		Env:        e.Env,
 	}, nil
 }
 
-func (np NodeProcedure) Apply(e *Evaluator, argVals gol.NodeList) (gol.Node, error) {
+func (np NodeProcedure) Apply(e *Evaluator, argVals *gol.NodeList) (gol.Node, error) {
 	if argVals.Len() != np.Args.Len() {
 		return nil, gol.NodeErrorf(argVals, "Arg mismatch")
 	}
@@ -175,7 +175,7 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals gol.NodeList) (gol.Node, err
 	f := gol.Frame{}
 	z := np.Args.Zip(argVals)
 	_, err := z.Map(func(n gol.Node) (gol.Node, error) {
-		pair, ok := n.(gol.NodePair)
+		pair, ok := n.(*gol.NodePair)
 		if !ok {
 			return nil, gol.NodeErrorf(argVals, "Internal error - zip returns non-pair")
 		}
@@ -199,10 +199,10 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals gol.NodeList) (gol.Node, err
 	return value, err
 }
 
-func (e *Evaluator) evalProgn(np gol.NodeProgn) (gol.Node, error) {
+func (e *Evaluator) evalProgn(np *gol.NodeProgn) (gol.Node, error) {
 	// Value if no children
 	var lastVal gol.Node
-	lastVal = gol.NodeList{}
+	lastVal = gol.NewNodeList()
 
 	body := np.Rest()
 	_, err := body.Map(func(child gol.Node) (gol.Node, error) {
@@ -221,7 +221,7 @@ func (e *Evaluator) evalProgn(np gol.NodeProgn) (gol.Node, error) {
 	return lastVal, nil
 }
 
-func (e *Evaluator) evalList(nl gol.NodeList) (gol.Node, error) {
+func (e *Evaluator) evalList(nl *gol.NodeList) (gol.Node, error) {
 	nodes, err := nl.Map(func(child gol.Node) (gol.Node, error) {
 		newVal, err := e.Eval(child)
 		if err != nil {
@@ -240,7 +240,7 @@ func (e *Evaluator) evalList(nl gol.NodeList) (gol.Node, error) {
 	return e.Apply(nodes)
 }
 
-func (e *Evaluator) Apply(nl gol.NodeList) (gol.Node, error) {
+func (e *Evaluator) Apply(nl *gol.NodeList) (gol.Node, error) {
 	if nl.Len() == 0 {
 		return nil, gol.NodeErrorf(nl, "empty application")
 	}

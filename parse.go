@@ -34,8 +34,8 @@ func NewParser(tokens chan Token) *Parser {
 func (p *Parser) Parse() (Node, error) {
 	// We evaluate a program as an implicit progn over the whole text
 	// TODO - bad idea, instead parse sexp by sexp with 'ParseOne' and a loop in 'ParseAll'
-	progn := NodeList{}
-	progn = progn.Cons(NodeIdentifier{
+	progn := NewNodeList()
+	progn = progn.Cons(&NodeIdentifier{
 		nodeAtom{
 			tok: Token{
 				tokIdentifier,
@@ -44,6 +44,7 @@ func (p *Parser) Parse() (Node, error) {
 			},
 		},
 	})
+	//	fmt.Printf("progn is: %s %T %d\n", progn, progn, progn.Len())
 	for {
 		tree, err := p.parseSexp()
 		if err != nil {
@@ -54,7 +55,8 @@ func (p *Parser) Parse() (Node, error) {
 		}
 		progn = progn.Cons(tree)
 	}
-	progn = progn.Reverse()
+	progn = progn.ReverseCopy()
+	//	fmt.Printf("progn is: %s %T %d\n", progn, progn, progn.Len())
 	return progn, nil
 }
 
@@ -97,21 +99,21 @@ func (p *Parser) parseSexp() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return NodeQuote{Arg: arg, Quasi: false}, nil
+		return &NodeQuote{Arg: arg, Quasi: false}, nil
 	case tokBackQuote:
 		p.stepToken()
 		arg, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		return NodeQuote{Arg: arg, Quasi: true}, nil
+		return &NodeQuote{Arg: arg, Quasi: true}, nil
 	case tokComma:
 		p.stepToken()
 		arg, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		return NodeUnQuote{Arg: arg}, nil
+		return &NodeUnQuote{Arg: arg}, nil
 	case tokLParen:
 		return p.parseList()
 	default:
@@ -131,27 +133,27 @@ func (p *Parser) parseAtom() (Node, error) {
 	case tokRParen:
 		return nil, p.Error(tok, "Found R Paren, expected atom")
 	case tokIdentifier:
-		return NodeIdentifier{nodeAtom{tok: tok}}, nil
+		return &NodeIdentifier{nodeAtom{tok: tok}}, nil
 	case tokSymbol:
-		return NodeSymbol{nodeAtom{tok: tok}}, nil
+		return &NodeSymbol{nodeAtom{tok: tok}}, nil
 	case tokString:
-		return NodeString{nodeAtom{tok: tok}}, nil
+		return &NodeString{nodeAtom{tok: tok}}, nil
 	case tokBool:
 		if tok.Value != "#t" && tok.Value != "#f" {
 			return nil, posErrorf(tok.Pos, "Bad boolean value [%s]", tok.Value)
 		}
-		return NodeBool{nodeAtom{tok: tok}}, nil
+		return &NodeBool{nodeAtom{tok: tok}}, nil
 	case tokInt:
 		// Special case '+' and '-'
 		if tok.Value == "+" || tok.Value == "-" {
-			return NodeIdentifier{nodeAtom{tok: tok}}, nil
+			return &NodeIdentifier{nodeAtom{tok: tok}}, nil
 		}
 
 		v, err := strconv.ParseInt(tok.Value, 10, 64)
 		if err != nil {
 			return nil, posErrorf(tok.Pos, "Can't parse [%s] as integer: %s", tok.Value, err)
 		}
-		return NodeInt{value: v}, nil
+		return &NodeInt{value: v}, nil
 	default:
 		panic("Unknown atom type")
 	}
@@ -166,7 +168,7 @@ func (p *Parser) parseList() (Node, error) {
 		return nil, p.Error(tok, "Parser logic error - missing L paren at start of list")
 	}
 	p.stepToken()
-	NodeList := NodeList{}
+	nodeList := NewNodeList()
 	for {
 		t, err := p.peekToken()
 		if err != nil {
@@ -174,12 +176,12 @@ func (p *Parser) parseList() (Node, error) {
 		}
 		if t.Type == tokRParen {
 			p.stepToken()
-			return NodeList, nil
+			return nodeList, nil
 		}
 		node, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		NodeList = NodeList.Append(node)
+		nodeList = nodeList.Append(node)
 	}
 }

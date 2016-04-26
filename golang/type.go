@@ -7,7 +7,7 @@ import (
 	"github.com/jbert/gol/typ"
 )
 
-func golangStringForType(t typ.Type) string {
+func golangStringForType(t typ.Type) (string, error) {
 	switch ty := t.(type) {
 	case typ.Primitive:
 		return golangStringForPrimitive(ty)
@@ -15,37 +15,54 @@ func golangStringForType(t typ.Type) string {
 		return golangStringForFunc(ty)
 	case typ.Variadic:
 		return golangStringForVariadic(ty)
+	case *typ.Var:
+		tyVal, err := ty.Lookup()
+		if err != nil {
+			return "", err
+		}
+		return golangStringForType(tyVal)
 	default:
-		panic("Unknown type")
+		return "", fmt.Errorf("Can't get golang string for unknown type: %v", t)
 	}
 }
 
-func golangStringForPrimitive(p typ.Primitive) string {
+func golangStringForPrimitive(p typ.Primitive) (string, error) {
 	switch p {
-	case typ.Unknown:
-		panic("Can't get golang string of 'Unknown' type")
+	case typ.Any:
+		return "interface{}", nil
 	case typ.Int:
-		return "int64"
+		return "int64", nil
 	case typ.Bool:
-		return "bool"
+		return "bool", nil
 	case typ.Symbol:
-		return "string"
+		return "string", nil
 	case typ.String:
-		return "string"
+		return "string", nil
 	default:
-		panic("Can't get golang string of unrecognised type")
+		return "", fmt.Errorf("Can't get golang string of unknown primitive type: %s", p)
 	}
 }
 
-func golangStringForFunc(f typ.Func) string {
+func golangStringForFunc(f typ.Func) (string, error) {
+	var err error
 	args := make([]string, len(f.Args))
 	for i := range f.Args {
-		args[i] = golangStringForType(f.Args[i])
+		args[i], err = golangStringForType(f.Args[i])
+		if err != nil {
+			return "", err
+		}
 	}
-	result := golangStringForType(f.Result)
-	return fmt.Sprintf("func(%s) %s", strings.Join(args, ","), result)
+	result, err := golangStringForType(f.Result)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("func(%s) %s", strings.Join(args, ","), result), nil
 }
 
-func golangStringForVariadic(v typ.Variadic) string {
-	return fmt.Sprintf("...%s", golangStringForType(v.X))
+func golangStringForVariadic(v typ.Variadic) (string, error) {
+	s, err := golangStringForType(v.X)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("...%s", s), nil
 }

@@ -84,7 +84,7 @@ func (g *Gol) evalReaderWithEnv(srcName string, r io.Reader, env *Environment) (
 
 	if err != nil {
 		switch e := err.(type) {
-		case gol.NodeError:
+		case *gol.NodeError:
 			return nil, e
 		default:
 			return nil, EvalError{err}

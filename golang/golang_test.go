@@ -2,6 +2,7 @@ package golang
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -49,6 +50,7 @@ CASE:
 		}
 
 		t.Logf("%d: running: %s\n", i, tc.Code)
+		fmt.Printf("%d: running: %s\n", i, tc.Code)
 		output, err := runProgram(tc.Code)
 		if err != nil {
 			if tc.ErrOutput == "" {

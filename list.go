@@ -2,47 +2,64 @@ package gol
 
 import "fmt"
 
-func (nl NodeList) Foreach(f func(n Node) error) error {
-	_, err := nl.Map(func(n Node) (Node, error) {
-		err := f(n)
-		if err != nil {
-			return nil, err
+func (nl *NodeList) ForeachLast(f func(n Node, last bool) error) error {
+	p := nl.children
+	for !p.IsNil() {
+		pNext, ok := p.Cdr.(*NodePair)
+		if !ok {
+			panic("Foreach on improoper list")
 		}
-		return nil, nil
-	})
-	return err
+
+		err := f(p.Car, pNext.IsNil())
+		if err != nil {
+			return err
+		}
+		p = pNext
+	}
+	return nil
 }
 
-func (nl NodeList) Map(f func(n Node) (Node, error)) (NodeList, error) {
+func (nl *NodeList) Foreach(f func(n Node) error) error {
+	f2 := func(n Node, last bool) error {
+		return f(n)
+	}
+	return nl.ForeachLast(f2)
+}
+
+func (nl *NodeList) Map(f func(n Node) (Node, error)) (*NodeList, error) {
 	p := nl.children
-	res := nl
+	listCopy := *nl
+	res := &listCopy
 	res.children = Nil()
 	for !p.IsNil() {
 		v, err := f(p.Car)
 		if err != nil {
-			return res, err
+			return nil, err
+		}
+		if v == nil {
+			panic("nil node back from map function")
 		}
 		res = res.Cons(v)
 		var ok bool
-		p, ok = p.Cdr.(NodePair)
+		p, ok = p.Cdr.(*NodePair)
 		if !ok {
 			panic("Map on improoper list")
 		}
 	}
-	rev := res.Reverse()
+	rev := res.ReverseCopy()
 	return rev, nil
 }
 
 func (nl *NodeList) Len() int {
 	l := 0
-	nl.Map(func(child Node) (Node, error) {
+	nl.Foreach(func(child Node) error {
 		l++
-		return nil, nil
+		return nil
 	})
 	return l
 }
 
-func (nl NodeList) Nth(n int) Node {
+func (nl *NodeList) Nth(n int) Node {
 	if n == 0 {
 		return nl.children.Car
 	} else {
@@ -50,21 +67,22 @@ func (nl NodeList) Nth(n int) Node {
 	}
 }
 
-func (nl NodeList) First() Node {
+func (nl *NodeList) First() Node {
 	return nl.children.Car
 }
 
-func (nl NodeList) Rest() NodeList {
-	newList := nl
+func (nl *NodeList) Rest() *NodeList {
+	listCopy := *nl
+	newList := &listCopy
 	var ok bool
-	newList.children, ok = newList.children.Cdr.(NodePair)
+	newList.children, ok = newList.children.Cdr.(*NodePair)
 	if !ok {
 		panic(fmt.Sprintf("NodeList not a list: %T", newList.children.Cdr))
 	}
 	return newList
 }
 
-func (nl NodeList) String() string {
+func (nl *NodeList) String() string {
 	s := []byte("(")
 	n := nl.children
 	first := true
@@ -82,7 +100,7 @@ func (nl NodeList) String() string {
 		//		s = append(s, []byte(fmt.Sprintf(" [%T]", n.Car))...)
 
 		var ok bool
-		n, ok = n.Cdr.(NodePair)
+		n, ok = n.Cdr.(*NodePair)
 		if !ok {
 			panic(fmt.Sprintf("NodeList with non-list children: %T\n", n))
 		}
@@ -93,10 +111,10 @@ func (nl NodeList) String() string {
 }
 
 /*
-func (nl NodeList) String() string {
+func (nl *NodeList) String() string {
 	s := "("
 	first := true
-	nl.Map(func(n Node) (Node, error) {
+	nl.Map(func(n *Node) (*Node, error) {
 		if !first {
 			first = true
 			s += " "
@@ -109,22 +127,22 @@ func (nl NodeList) String() string {
 }
 */
 
-func (nl NodeList) Cons(n Node) NodeList {
-	ret := nl
-	prev := ret.children
-	ret.children = NewNodePair(n, prev)
-	return ret
+func (nl *NodeList) Cons(n Node) *NodeList {
+	listCopy := *nl
+	listCopy.children = NewNodePair(n, nl.children)
+	return &listCopy
 }
 
-func (nl NodeList) Append(n Node) NodeList {
-	ret := nl.Reverse()
+func (nl *NodeList) Append(n Node) *NodeList {
+	ret := nl.ReverseCopy()
 	ret = ret.Cons(n)
-	ret = ret.Reverse()
+	ret = ret.ReverseCopy()
 	return ret
 }
 
-func (nl NodeList) Zip(nl2 NodeList) NodeList {
-	ret := nl
+func (nl *NodeList) Zip(nl2 *NodeList) *NodeList {
+	listCopy := *nl
+	ret := &listCopy
 	ret.children = Nil()
 
 	car := nl.First()
@@ -137,25 +155,21 @@ func (nl NodeList) Zip(nl2 NodeList) NodeList {
 	return rest.Cons(pair)
 }
 
-func moveOne(from, to *NodeList) bool {
-	if from.children.IsNil() {
-		return false
-	}
-	pair := from.First()
-	nextfrom := from.Rest()
-	from.children = nextfrom.children
+func (nl *NodeList) ReverseCopy() *NodeList {
+	ret := NewNodeList()
+	ret.NodeBase = nl.NodeBase
 
-	nextto := to.Cons(pair)
-	to.children = nextto.children
-	return true
-}
+	from := nl.children
+	for !from.IsNil() {
+		pairCopy := *from
+		pairCopy.Cdr = ret.children
+		ret.children = &pairCopy
 
-func (nl NodeList) Reverse() NodeList {
-	ret := nl
-	ret.children = Nil()
-
-	// nl is a copy, so ok to modify
-	for moveOne(&nl, &ret) {
+		var ok bool
+		from, ok = from.Cdr.(*NodePair)
+		if !ok {
+			panic("ReverseCopy on improoper list")
+		}
 	}
 
 	return ret

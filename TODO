@@ -1,3 +1,82 @@
+- do we need return type back in infer as a "desired type"
+	- consider the nodelist/application case
+	- we build up a desired func
+	- the head may be an identifier (or a lambda)
+	- we want to unify those
+	- ah, that's OK if we override NodeUnify for those types
+	- except NodeIdentifer needs a type env
+		- maybe we use nb.t for that in nodeidentitier
+		- and panic() in id.NodeUnify if not set? yes.
+
+
+- add unification for Variadic and args in a Func, so that we can type check
+	(+ 1 2 3)
+	and gjve an error on (+ "foo" 1)
+
+- new type structure
+	DONE - move 'typeEnv' GolangBackend struct member into a local in the 'Infer' method
+	- Infer method uses helper function
+		DONE - which takes a nodePtr, typeEnv and returnType
+		DONE - helper switches on node type and makes use of the old Type() method logic
+		- builds type frame for let/lambda, recurses
+		DONE - stores inferred type on the nodePtr
+		DONE - returns number of setTypes called / progress made
+		DONE - Infer calls helper repeatedly until no progress made
+	- typeEnv needs to have type variables
+	- give every non-immediately typed node a type variable
+	- SetType needs to unify arg and object type
+		- unify for concrete + var means set var to that type
+		- unify for two vars means bind them together
+		- type vars are then singletons?
+			- if A and B both have type alpha
+			- and C has type beta
+			- then if we infer that A has same type as C
+			- we want to know that A has type beta
+			- and so does B
+			- could use:
+				- ptr-to-type in nodes (so 'singleton' for types referred
+				to by nodes)
+				- pkg-scope equiv table in typ (type AAAA == type AAAB)
+
+	- when calling SetType to overwrite type on a node
+		- if it is a variable, resolve the variable
+		- maybe just proxy settype through to the variable if one is there
+		then all nodes with same variable type are set
+	- need to replace 'if not typ.Any' in SetType with "is subtype of" check
+		- add in unit tests for subtype
+		- add in 'and type'
+		- make 'pair' an 'and type'
+	- need to add union/find so we can introduce fresh vars to avoid capture?
+
+- remove 'Type()' method
+
+
+
+- types. gah. 
+	(let ((f (lambda (x) (+ 1 x))))
+	 (f (+ 1 2)))
+
+	- need to infer that 'x' has type Int in
+		(+ 1 x)
+	- and consequently that the lambda expression has type 'Int -> Int' 
+	- needs an 'infer' step
+		- and a SetType
+		- error if current type is not compatiable
+			- i.e. Unknown or a matching 'and' type
+			- do we need more clever, unification here?
+
+	- we can in principle infer the 'Int' for the arg
+
+	- OK, just need "typeof application of func is return type of func"
+
+	- oh and:
+		- ('Infer' step)
+			- introduce typevar for unbound vars in let/lambda
+				- is that just the env?
+			- apply constraints
+			- find type of var from typeof typevar after constraints
+
+
 - need a way to insert function argument names into the function type for func definition?
 	- no, not for typing. only for emitLambda, which can do it's own thing
 

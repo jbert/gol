@@ -2,14 +2,14 @@ package gol
 
 func Transform(node Node) (Node, error) {
 	switch n := node.(type) {
-	case NodeList:
+	case *NodeList:
 		return transformList(n)
 	default:
 		return node, nil
 	}
 }
 
-func transformNodes(nl NodeList) (NodeList, error) {
+func transformNodes(nl *NodeList) (*NodeList, error) {
 	return nl.Map(func(child Node) (Node, error) {
 		newNode, err := Transform(child)
 		if err != nil {
@@ -19,13 +19,13 @@ func transformNodes(nl NodeList) (NodeList, error) {
 	})
 }
 
-func transformList(n NodeList) (Node, error) {
+func transformList(n *NodeList) (Node, error) {
 	if n.Len() == 0 {
 		return n, nil
 	}
 
 	first := n.First()
-	id, ok := first.(NodeIdentifier)
+	id, ok := first.(*NodeIdentifier)
 	if ok {
 		switch id.String() {
 		case "define":
@@ -59,7 +59,7 @@ func transformList(n NodeList) (Node, error) {
 	return ret, nil
 }
 
-func transformQuasiQuote(n NodeList) (Node, error) {
+func transformQuasiQuote(n *NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, NodeErrorf(n, "Bad quasiquote expression - more than one arg")
 	}
@@ -67,10 +67,10 @@ func transformQuasiQuote(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeQuote{NodeList: n, Arg: child, Quasi: true}, nil
+	return &NodeQuote{NodeList: n, Arg: child, Quasi: true}, nil
 }
 
-func transformQuote(n NodeList) (Node, error) {
+func transformQuote(n *NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, NodeErrorf(n, "Bad quote expression - more than one arg")
 	}
@@ -78,10 +78,10 @@ func transformQuote(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeQuote{NodeList: n, Arg: child, Quasi: false}, nil
+	return &NodeQuote{NodeList: n, Arg: child, Quasi: false}, nil
 }
 
-func transformUnQuote(n NodeList) (Node, error) {
+func transformUnQuote(n *NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, NodeErrorf(n, "Bad quote expression - more than one arg")
 	}
@@ -89,10 +89,10 @@ func transformUnQuote(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeUnQuote{NodeList: n, Arg: child}, nil
+	return &NodeUnQuote{NodeList: n, Arg: child}, nil
 }
 
-func transformIf(n NodeList) (Node, error) {
+func transformIf(n *NodeList) (Node, error) {
 	if n.Len() != 4 {
 		return nil, NodeErrorf(n, "Bad if expression - missing test or t/f branch")
 	}
@@ -100,7 +100,7 @@ func transformIf(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeIf{
+	return &NodeIf{
 		NodeList:  n,
 		Condition: children.First(),
 		TBranch:   children.Nth(1),
@@ -108,7 +108,7 @@ func transformIf(n NodeList) (Node, error) {
 	}, nil
 }
 
-func transformSet(n NodeList) (Node, error) {
+func transformSet(n *NodeList) (Node, error) {
 	if n.Len() != 3 {
 		return nil, NodeErrorf(n, "Bad set! expression - missing id or value")
 	}
@@ -116,44 +116,44 @@ func transformSet(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	id, ok := children.First().(NodeIdentifier)
+	id, ok := children.First().(*NodeIdentifier)
 	if !ok {
 		return nil, NodeErrorf(n, "Bad set! expression - non-identifier")
 	}
-	return NodeSet{
+	return &NodeSet{
 		NodeList: n,
 		Id:       id,
 		Value:    children.Nth(1),
 	}, nil
 }
 
-func transformError(n NodeList) (Node, error) {
+func transformError(n *NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, NodeErrorf(n, "Bad error expression - exactly one string required")
 	}
-	return NodeError{n.Nth(1), n.Nth(1).String()}, nil
+	return &NodeError{n.Nth(1), n.Nth(1).String()}, nil
 }
 
-func transformProgn(n NodeList) (Node, error) {
+func transformProgn(n *NodeList) (Node, error) {
 	children, err := transformNodes(n.Rest())
 	if err != nil {
 		return nil, err
 	}
-	return NodeProgn{children.Cons(n.First())}, nil
+	return &NodeProgn{children.Cons(n.First())}, nil
 }
 
-func transformDefine(n NodeList) (Node, error) {
+func transformDefine(n *NodeList) (Node, error) {
 	if n.Len() < 3 {
 		return nil, NodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
 	// Syntactix suger '(define (f x) body) -> '(define f (lambda (x) body))'
-	IDAndArgs, ok := n.Nth(1).(NodeList)
+	IDAndArgs, ok := n.Nth(1).(*NodeList)
 	if ok {
 		return transformSugaryDefine(IDAndArgs, n)
 	}
 
-	id, ok := n.Nth(1).(NodeIdentifier)
+	id, ok := n.Nth(1).(*NodeIdentifier)
 	if !ok {
 		return nil, NodeErrorf(n, "Bad define expression - invalid identifier type %T", n.Nth(1))
 	}
@@ -163,14 +163,14 @@ func transformDefine(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NodeDefine{
+	return &NodeDefine{
 		NodeList: n,
 		Symbol:   id,
 		Value:    makeProgn(children),
 	}, nil
 }
 
-func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
+func transformSugaryDefine(IDAndArgs *NodeList, n *NodeList) (Node, error) {
 	//		fmt.Printf("define lambda: %s\n", n)
 	//fmt.Printf("len id + args %d - %s\n", len(IDAndArgs.children), IDAndArgs)
 	if IDAndArgs.Len() == 0 {
@@ -178,18 +178,15 @@ func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
 	}
 	id := IDAndArgs.First()
 	args := IDAndArgs.Rest()
-	//fmt.Printf("id %s\n", id)
-	//fmt.Printf("args %s\n", args)
 
-	newDefine := n
-	newDefine.children = NodePair{}
+	newDefine := NewNodeList()
 	newDefine = newDefine.Append(n.First())
 
 	// Replace (f x) -> f
 	newDefine = newDefine.Append(id)
 
 	// Replace body -> (lambda 'args' body)
-	body := NodeList{}
+	body := NewNodeList()
 	lambdaBody := n.Rest().Rest()
 	lambdaBody = lambdaBody.Cons(makeIdentifier("progn"))
 	body = body.Cons(lambdaBody)
@@ -201,33 +198,33 @@ func transformSugaryDefine(IDAndArgs NodeList, n NodeList) (Node, error) {
 	return transformDefine(newDefine)
 }
 
-func transformLet(n NodeList) (Node, error) {
+func transformLet(n *NodeList) (Node, error) {
 	if n.Len() < 3 {
 		return nil, NodeErrorf(n, "Bad let expression - missing bindings or body")
 	}
-	nLet := NodeLet{NodeList: n, Bindings: make(map[string]Node)}
-	bindings, ok := n.Nth(1).(NodeList)
+	nLet := &NodeLet{NodeList: n, Bindings: make(map[string]Node)}
+	bindings, ok := n.Nth(1).(*NodeList)
 	if !ok {
 		return nil, NodeErrorf(n, "Bad let expression - bindings must be a list")
 	}
-	_, err := bindings.Map(func(pairNode Node) (Node, error) {
-		pair, ok := pairNode.(NodeList)
+	err := bindings.Foreach(func(pairNode Node) error {
+		pair, ok := pairNode.(*NodeList)
 		if !ok {
-			return nil, NodeErrorf(n, "Bad let expression - bindings must be pairs")
+			return NodeErrorf(n, "Bad let expression - bindings must be pairs")
 		}
 		if pair.Len() != 2 {
-			return nil, NodeErrorf(n, "Bad let expression - bindings must be pairs")
+			return NodeErrorf(n, "Bad let expression - bindings must be pairs")
 		}
-		id, ok := pair.First().(NodeIdentifier)
+		id, ok := pair.First().(*NodeIdentifier)
 		if !ok {
-			return nil, NodeErrorf(n, "Bad let expression - invalid identifier")
+			return NodeErrorf(n, "Bad let expression - invalid identifier")
 		}
 		var err error
 		nLet.Bindings[id.String()], err = Transform(pair.Nth(1))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -241,16 +238,16 @@ func transformLet(n NodeList) (Node, error) {
 	return nLet, nil
 }
 
-func transformLambda(n NodeList) (Node, error) {
+func transformLambda(n *NodeList) (Node, error) {
 	if n.Len() < 3 {
 		return nil, NodeErrorf(n, "Bad lambda expression - missing args or body [len %d]: %s", n.Len(), n)
 	}
-	args, ok := n.Nth(1).(NodeList)
+	args, ok := n.Nth(1).(*NodeList)
 	if !ok {
 		return nil, NodeErrorf(n, "Bad lambda expression - args must be a list")
 	}
 	_, err := args.Map(func(argNode Node) (Node, error) {
-		_, ok := argNode.(NodeIdentifier)
+		_, ok := argNode.(*NodeIdentifier)
 		if !ok {
 			return nil, NodeErrorf(n, "Bad lambda expression - arg must be identifier")
 		}
@@ -265,11 +262,11 @@ func transformLambda(n NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	nLambda := NodeLambda{NodeList: n, Args: args, Body: makeProgn(body)}
+	nLambda := &NodeLambda{NodeList: n, Args: args, Body: makeProgn(body)}
 	return nLambda, nil
 }
 
-func makeProgn(nl NodeList) NodeProgn {
+func makeProgn(nl *NodeList) *NodeProgn {
 	nl = nl.Cons(makeIdentifier("progn"))
-	return NodeProgn{nl}
+	return &NodeProgn{nl}
 }

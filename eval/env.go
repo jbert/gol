@@ -45,6 +45,6 @@ func (e Environment) Set(id string, value gol.Node) (gol.Node, error) {
 }
 
 type NodeProcedure struct {
-	gol.NodeLambda
+	*gol.NodeLambda
 	Env Environment
 }

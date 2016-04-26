@@ -2,42 +2,99 @@ package gol
 
 import "testing"
 
-func makeListTo(n int64) NodeList {
-	nl := NodeList{}
+func makeListTo(n int64) *NodeList {
+	nl := NewNodeList()
 	for i := n; i > 0; i-- {
 		nl = nl.Cons(NewNodeInt(i))
 	}
 	return nl
 }
 
-func TestListReverse(t *testing.T) {
+func TestListZip(t *testing.T) {
+	l := makeListTo(5)
+	l2, _ := l.Map(func(n Node) (Node, error) {
+		ni := n.(*NodeInt)
+		return NewNodeInt(ni.Value() * 2), nil
+	})
+	if l2.String() != "(2 4 6 8 10)" {
+		t.Fatalf("Can't make doubled list: %s", l2)
+	}
+
+	z := l.Zip(l2)
+	if z.String() != "((1 2) (2 4) (3 6) (4 8) (5 10))" {
+		t.Fatalf("Can't zip: %s", z)
+	}
+
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("zip changed initial list: %s", l)
+	}
+	if l2.String() != "(2 4 6 8 10)" {
+		t.Fatalf("Zip changed doubled list: %s", l2)
+	}
+}
+
+func TestListFirstRest(t *testing.T) {
+	l := makeListTo(5)
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Can't make initial list")
+	}
+	if l.First().String() != "1" {
+		t.Fatalf("Can't get first")
+	}
+	if l.Rest().String() != "(2 3 4 5)" {
+		t.Fatalf("Can't get rest")
+	}
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("First or rest changed list")
+	}
+}
+
+func TestListReverseOld(t *testing.T) {
 	p := Nil()
 	if !p.IsNil() {
 		t.Fatalf("Nil pair isn't nil")
 	}
 
-	l1 := NodeList{
-		children: NodePair{NewNodeInt(2), NodePair{NewNodeInt(1), NodePair{}}},
+	l1 := &NodeList{
+		children: &NodePair{
+			Car: NewNodeInt(2),
+			Cdr: &NodePair{
+				Car: NewNodeInt(1),
+				Cdr: &NodePair{}}},
 	}
+
 	if l1.Len() != 2 {
 		t.Fatalf("Wrong length of l1: %d", l1.Len())
 	}
-	t.Logf("L1 %s\n", l1)
 
-	l2 := l1.Reverse()
+	l2 := l1.ReverseCopy()
 	if l2.Len() != 2 {
 		t.Fatalf("Wrong length of l2: %d", l1.Len())
 	}
 
-	if l2.First().(NodeInt).Value() != 1 {
+	if l2.First().(*NodeInt).Value() != 1 {
 		t.Fatalf("Wrong reversed item")
+	}
+}
+
+func TestListReverse(t *testing.T) {
+	l := makeListTo(5)
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Can't make initial list")
+	}
+	rc := l.ReverseCopy()
+	if rc.String() != "(5 4 3 2 1)" {
+		t.Fatalf("Can't reverse list: %s", rc)
+	}
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Reverse changed list: %s", l)
 	}
 }
 
 func TestListCons(t *testing.T) {
 	t.Log("TestListCons")
 
-	l := NodeList{}
+	l := NewNodeList()
 	if l.Len() != 0 {
 		t.Fatalf("Empty list doesn't have zero length")
 	}
@@ -50,9 +107,9 @@ func TestListCons(t *testing.T) {
 	}
 
 	n := l2.First()
-	ni, ok := n.(NodeInt)
+	ni, ok := n.(*NodeInt)
 	if !ok {
-		t.Fatalf("cons-then-first is the wrong type")
+		t.Fatalf("cons-then-first is the wrong type (not NodeInt): %T", n)
 	}
 	if ni.Value() != 1 {
 		t.Fatalf("cons-then-first is the wrong value")
@@ -63,10 +120,14 @@ func TestListCons(t *testing.T) {
 func TestListMap(t *testing.T) {
 	l := makeListTo(5)
 	t.Logf("initial list: %s\n", l)
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Can't make initial list")
+	}
+
 	expected := int64(1)
 
 	m, err := l.Map(func(n Node) (Node, error) {
-		ni, ok := n.(NodeInt)
+		ni, ok := n.(*NodeInt)
 		if !ok {
 			t.Errorf("Non-int node in list")
 			return nil, nil
@@ -90,9 +151,13 @@ func TestListMap(t *testing.T) {
 	}
 	t.Logf("map return: %s\n", m)
 
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Map changed initial list: %s", l.String())
+	}
+
 	expected = -1
 	m2, _ := m.Map(func(n Node) (Node, error) {
-		ni, ok := n.(NodeInt)
+		ni, ok := n.(*NodeInt)
 		if !ok {
 			t.Errorf("Non-int node in list")
 			return nil, nil
@@ -106,3 +171,38 @@ func TestListMap(t *testing.T) {
 	})
 	t.Logf("second map return: %s\n", m2)
 }
+
+/* ----
+ * Not sure if we want this - we need to reach inside the Node to change it,
+ * which we shouldn't be doing anyway
+func TestListDestructiveMap(t *testing.T) {
+	l := makeListTo(5)
+	t.Logf("initial list: %s\n", l)
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Can't make initial list")
+	}
+
+	l2, err := l.Map(func(n Node) (Node, error) {
+		ni, ok := n.(*NodeInt)
+		if !ok {
+			t.Errorf("Non-int node in list")
+			return nil, nil
+		}
+		// Reach inside the node to change it's value
+		ni.value *= 2
+		return ni, nil
+	})
+	if err != nil {
+		t.Fatalf("wtf")
+	}
+	t.Logf("initial list after map: %s\n", l)
+
+	if l2.String() != "(2 4 6 8 10)" {
+		t.Fatalf("Modifying map failed")
+	}
+
+	if l.String() != "(1 2 3 4 5)" {
+		t.Fatalf("Modifying map changed original list")
+	}
+}
+*/

@@ -10,17 +10,30 @@ type NodeBase struct {
 	t typ.Type
 }
 
-func (nb NodeBase) Type(e typ.Env) typ.Type {
-	// Catch at runtime for now - when we have some inference
-	// then we can return the stored type
-	//	panic(fmt.Sprintf("Unimplemented Type: %T", nb))
+func (nb *NodeBase) lazyInit() {
+	// Zero type is nil. We want a type var
+	if nb.t == nil {
+		nb.t = typ.NewVar()
+	}
+}
+
+func (nb *NodeBase) Type() typ.Type {
+	nb.lazyInit()
 	return nb.t
+}
+
+func (nb *NodeBase) NodeUnify(t typ.Type, env typ.Env) error {
+	nb.lazyInit()
+
+	//log.Printf("NodeBase Nodeunify (nb type %T)\n", nb)
+	return nb.t.Unify(t)
 }
 
 type Node interface {
 	String() string
 	Pos() Position
-	Type(e typ.Env) typ.Type
+	Type() typ.Type
+	NodeUnify(t typ.Type, env typ.Env) error
 }
 
 type nodeAtom struct {
@@ -38,64 +51,86 @@ type NodeInt struct {
 }
 
 func NewNodeInt(n int64) Node {
-	return NodeInt{value: n}
+	return &NodeInt{value: n}
 }
 
-func (ni NodeInt) String() string {
+func (ni *NodeInt) String() string {
 	return fmt.Sprintf("%d", ni.value)
 }
-func (ni NodeInt) Value() int64 {
+func (ni *NodeInt) Value() int64 {
 	return ni.value
 }
-func (ni NodeInt) Type(e typ.Env) typ.Type {
+
+func (ni NodeInt) Type() typ.Type {
 	return typ.Int
+}
+
+func (ni NodeInt) NodeUnify(t typ.Type, env typ.Env) error {
+	return t.Unify(typ.Int)
 }
 
 type NodeIdentifier struct {
 	nodeAtom
 }
 
-func (ni NodeIdentifier) Type(e typ.Env) typ.Type {
-	//	fmt.Printf("Lookup %s\n", ni.String())
-	t, err := e.Lookup(ni.String())
-	if err != nil {
-		return typ.Unknown
-	}
-	return t
-}
-
-func makeIdentifier(s string) NodeIdentifier {
-	return NodeIdentifier{nodeAtom{tok: Token{
+func makeIdentifier(s string) *NodeIdentifier {
+	return &NodeIdentifier{nodeAtom{tok: Token{
 		Type:  tokIdentifier,
 		Value: s,
 	}}}
+}
+
+func (ni NodeIdentifier) NodeUnify(t typ.Type, env typ.Env) error {
+	envType, err := env.Lookup(ni.String())
+	if err != nil {
+		return err
+	}
+	// Unify our lazy var with our env type
+	err = ni.t.Unify(envType)
+	if err != nil {
+		return err
+	}
+	// And with the passed in type
+	return envType.Unify(t)
 }
 
 type NodeSymbol struct {
 	nodeAtom
 }
 
-func (ns NodeSymbol) Type(e typ.Env) typ.Type {
+func (ns NodeSymbol) Type() typ.Type {
 	return typ.Symbol
+}
+
+func (ns NodeSymbol) NodeUnify(t typ.Type, env typ.Env) error {
+	return t.Unify(typ.Symbol)
 }
 
 type NodeString struct {
 	nodeAtom
 }
 
-func (ns NodeString) Type(e typ.Env) typ.Type {
+func (ns NodeString) Type() typ.Type {
 	return typ.String
+}
+
+func (ns NodeString) NodeUnify(t typ.Type, env typ.Env) error {
+	return t.Unify(typ.String)
 }
 
 type NodeBool struct {
 	nodeAtom
 }
 
-func (nb NodeBool) Type(e typ.Env) typ.Type {
+func (nb NodeBool) Type() typ.Type {
 	return typ.Bool
 }
 
-var NODE_FALSE = NodeBool{
+func (nb NodeBool) NodeUnify(t typ.Type, env typ.Env) error {
+	return t.Unify(typ.Bool)
+}
+
+var NODE_FALSE = &NodeBool{
 	nodeAtom{
 		tok: Token{
 			Type:  tokBool,
@@ -104,7 +139,7 @@ var NODE_FALSE = NodeBool{
 	},
 }
 
-var NODE_TRUE = NodeBool{
+var NODE_TRUE = &NodeBool{
 	nodeAtom{
 		tok: Token{
 			Type:  tokBool,
@@ -113,13 +148,13 @@ var NODE_TRUE = NodeBool{
 	},
 }
 
-var NODE_NIL = NodeList{}
+var NODE_NIL = &NodeList{}
 
-func (nb NodeBool) IsTrue() bool {
+func (nb *NodeBool) IsTrue() bool {
 	return nb.String() == "#t"
 }
 
-func (ns NodeString) String() string {
+func (ns *NodeString) String() string {
 	// Unescape
 	value := make([]rune, 0, len(ns.tok.Value))
 	escaped := false
@@ -155,36 +190,35 @@ func (na nodeAtom) String() string {
 // ----------------------------------------
 
 type NodePair struct {
+	NodeBase
 	Car Node
 	Cdr Node
 }
 
-func (np NodePair) Type(e typ.Env) typ.Type {
-	// TODO: return an and-type:
-	// - List[car.Type()]			// homogenous list
-	// - List[datum]			// heterogenous list
-	// - Pair[car.Type(), cdr.Type()]	// Pair
-	return typ.NewPair(np.Car.Type(e), np.Cdr.Type(e))
+func NewNodePair(car, cdr Node) *NodePair {
+	pairType := typ.NewPair(car.Type(), cdr.Type())
+	np := &NodePair{
+		NodeBase: NodeBase{t: pairType},
+		Car:      car,
+		Cdr:      cdr,
+	}
+	return np
 }
 
-func NewNodePair(car, cdr Node) NodePair {
-	return NodePair{Car: car, Cdr: cdr}
-}
-
-func (np NodePair) String() string {
+func (np *NodePair) String() string {
 	if np.IsNil() {
 		return "()"
 	} else {
-		return fmt.Sprintf("(%v %v)", np.Car, np.Cdr)
+		return fmt.Sprintf("(%v . %v)", np.Car, np.Cdr)
 	}
 }
 
-func (np NodePair) Pos() Position {
+func (np *NodePair) Pos() Position {
 	return np.Car.Pos()
 }
 
-func Nil() NodePair {
-	return NodePair{}
+func Nil() *NodePair {
+	return &NodePair{}
 }
 
 func (np *NodePair) IsNil() bool {
@@ -193,10 +227,20 @@ func (np *NodePair) IsNil() bool {
 
 type NodeList struct {
 	NodeBase
-	children NodePair
+	children *NodePair
 }
 
-func (nl NodeList) Pos() Position {
+func NewNodeList() *NodeList {
+	return &NodeList{
+		children: Nil(),
+	}
+}
+
+//func (nl *NodeList) SetType(t typ.Type) error {
+//	return nl.NodeBase.SetType(t)
+//}
+
+func (nl *NodeList) Pos() Position {
 	if nl.Len() == 0 {
 		return Position{File: "<empty list>"}
 	} else {
@@ -204,59 +248,31 @@ func (nl NodeList) Pos() Position {
 	}
 }
 
-func (nl NodeList) Type(e typ.Env) typ.Type {
-	headType := nl.First().Type(e)
-	//	fmt.Printf("Type of NL [0] (%s)\n", headType.String())
-	f, ok := headType.(typ.Func)
-	if !ok {
-		// TODO infer!
-		panic(fmt.Sprintf("Non-function in head position - can't infer type: %T [%s]",
-			headType,
-			nl))
-	}
-	// TODO: validate args
-	return f.Result
-}
-
 // ----------------------------------------
-// NodeList sub types
+// *NodeList sub types
 
 type NodeLambda struct {
-	NodeList
-	Args NodeList
+	*NodeList
+	Args *NodeList
 	Body Node
 }
 
-func (nl NodeLambda) Type(e typ.Env) typ.Type {
-	argTypes := make([]typ.Type, nl.Args.Len())
-	i := 0
-	nl.Args.Foreach(func(n Node) error {
-		argTypes[i] = n.Type(e)
-		i++
-		return nil
-	})
-
-	resultType := nl.Body.Type(e)
-
-	return typ.NewFunc(argTypes, resultType)
-}
-
 type NodeUnQuote struct {
-	NodeList
+	*NodeList
 	Arg Node
 }
 
-func (nq NodeUnQuote) String() string {
+func (nq *NodeUnQuote) String() string {
 	return "," + nq.Arg.String()
 }
 
 type NodeQuote struct {
-	NodeList
+	*NodeList
 	Arg   Node
 	Quasi bool
 }
 
-func (nq NodeQuote) String() string {
+func (nq *NodeQuote) String() string {
 	argStr := nq.Arg.String()
 	if nq.Quasi {
 		return "'" + argStr
@@ -267,27 +283,23 @@ func (nq NodeQuote) String() string {
 }
 
 type NodeIf struct {
-	NodeList
+	*NodeList
 	Condition Node
 	TBranch   Node
 	FBranch   Node
 }
 type NodeSet struct {
-	NodeList
-	Id    NodeIdentifier
+	*NodeList
+	Id    *NodeIdentifier
 	Value Node
 }
 
 type NodeProgn struct {
-	NodeList
-}
-
-func (np NodeProgn) Type(e typ.Env) typ.Type {
-	return np.Reverse().First().Type(e)
+	*NodeList
 }
 
 type NodeDefine struct {
-	NodeList
+	*NodeList
 	Symbol Node
 	Value  Node
 }
@@ -295,7 +307,7 @@ type NodeDefine struct {
 type Frame map[string]Node
 
 type NodeLet struct {
-	NodeList
+	*NodeList
 	Bindings Frame
 	Body     Node
 }
@@ -307,14 +319,21 @@ type NodeError struct {
 	msg string
 }
 
-func (ne NodeError) String() string {
+func (ne *NodeError) Type() typ.Type {
+	return typ.Void
+}
+func (ne *NodeError) NodeUnify(t typ.Type, env typ.Env) error {
+	return fmt.Errorf("Can't unify an error node type on an error")
+}
+
+func (ne *NodeError) String() string {
 	return ne.Error()
 }
-func (ne NodeError) Error() string {
+func (ne *NodeError) Error() string {
 	pos := ne.Pos()
 	return fmt.Sprintf("%s: %s line %d:%d [%s]", ne.msg, pos.File, pos.Line, pos.Column, ne.Node)
 }
 
-func NodeErrorf(n Node, f string, args ...interface{}) NodeError {
-	return NodeError{Node: n, msg: fmt.Sprintf(f, args...)}
+func NodeErrorf(n Node, f string, args ...interface{}) *NodeError {
+	return &NodeError{Node: n, msg: fmt.Sprintf(f, args...)}
 }

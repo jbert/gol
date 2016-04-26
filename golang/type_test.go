@@ -24,7 +24,10 @@ func TestGolangTypeString(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		golangStr := golangStringForType(tc.testType)
+		golangStr, err := golangStringForType(tc.testType)
+		if err != nil {
+			t.Errorf("Error return [%s]", err)
+		}
 		if golangStr != tc.expected {
 			t.Errorf("Failed [%s]: %s != %s", tc.testType, golangStr, tc.expected)
 		} else {
