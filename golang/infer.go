@@ -88,12 +88,18 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		var head gol.Node
 		argTypes := make([]typ.Type, 0)
 		first := true
-		node.Foreach(func(n gol.Node) error {
+		node.Foreach(func(child gol.Node) error {
+			childChanges, err := gb.infer(child, typeEnv)
+			if err != nil {
+				return err
+			}
+			numChanges += childChanges
+
 			if first {
 				first = false
-				head = n
+				head = child
 			} else {
-				argTypes = append(argTypes, n.Type())
+				argTypes = append(argTypes, child.Type())
 			}
 			return nil
 		})
@@ -111,13 +117,20 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		}
 
 	case *gol.NodeLambda:
+		log.Printf("infer: NodeLambda (%s)\n", n.String())
 		argTypes := make([]typ.Type, node.Args.Len())
 		i := 0
-		node.Args.Foreach(func(n gol.Node) error {
-			argTypes[i] = n.Type()
+		node.Args.Foreach(func(child gol.Node) error {
+			argTypes[i] = child.Type()
 			i++
 			return nil
 		})
+
+		childChanges, err := gb.infer(node.Body, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
 
 		resultType := node.Body.Type()
 
@@ -132,11 +145,29 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		}
 
 	case *gol.NodeLet:
+		log.Printf("infer: NodeLet (%s)\n", n.String())
 
-		//		frame := make(map[string]typ.Type)
-		//		for k, v := range node.Bindings {
-		//			..
-		//		}
+		frame := make(map[string]typ.Type)
+		for k, v := range node.Bindings {
+			frame[k] = v.Type()
+			childChanges, err := gb.infer(v, typeEnv)
+			if err != nil {
+				return 0, err
+			}
+			numChanges += childChanges
+		}
+
+		oldEnv := typeEnv
+		defer func() {
+			typeEnv = oldEnv
+		}()
+		typeEnv = typeEnv.WithFrame(frame)
+
+		childChanges, err := gb.infer(node.Body, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
 
 	case *gol.NodeInt:
 		node.NodeUnify(typ.Int, typeEnv)
