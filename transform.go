@@ -246,12 +246,12 @@ func transformLambda(n *NodeList) (Node, error) {
 	if !ok {
 		return nil, NodeErrorf(n, "Bad lambda expression - args must be a list")
 	}
-	_, err := args.Map(func(argNode Node) (Node, error) {
+	err := args.Foreach(func(argNode Node) error {
 		_, ok := argNode.(*NodeIdentifier)
 		if !ok {
-			return nil, NodeErrorf(n, "Bad lambda expression - arg must be identifier")
+			return NodeErrorf(n, "Bad lambda expression - arg must be identifier")
 		}
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return nil, err

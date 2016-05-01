@@ -58,6 +58,13 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 				first = false
 				return nil
 			}
+
+			childChanges, err := gb.infer(child, typeEnv)
+			if err != nil {
+				return err
+			}
+			numChanges += childChanges
+
 			if last {
 				// Type of last child should match that of progn as a whole
 				//log.Printf("Inferring type %s for child %s (type %s)\n", n.Type(), child, child.Type())
