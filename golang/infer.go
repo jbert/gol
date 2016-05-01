@@ -44,7 +44,7 @@ INFERRING:
 func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 	numChanges := 0
 
-	log.Printf("Inferring node %p: %s [%T}\n", n, n, n)
+	log.Printf("Inferring node %p: %s [%T]: %s\n", n, n, n, n.Type())
 	// Remember this to see if we changed it
 	origType := n.Type()
 
@@ -175,6 +175,8 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 			return 0, err
 		}
 		numChanges += childChanges
+
+		node.NodeUnify(node.Body.Type(), typeEnv)
 
 	case *gol.NodeInt:
 		node.NodeUnify(typ.Int, typeEnv)
