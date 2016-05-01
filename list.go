@@ -138,9 +138,7 @@ func (nl *NodeList) Append(n Node) *NodeList {
 }
 
 func (nl *NodeList) Zip(nl2 *NodeList) *NodeList {
-	listCopy := *nl
-	ret := &listCopy
-	ret.children = Nil()
+	ret := NewNodeList()
 
 	car := nl.First()
 	cdr := nl2.First()

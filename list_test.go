@@ -237,4 +237,13 @@ func TestListCopyType(t *testing.T) {
 	if lStr == lConsStr {
 		t.Fatalf("Cons has same typevar as original")
 	}
+
+	l = makeListTo(5)
+	lStr = l.Type().String() // Force lazy init before copy
+	l2 = makeListTo(5)
+	lZip := l.Zip(l2)
+	lZipStr := lZip.Type().String()
+	if lStr == lZipStr {
+		t.Fatalf("Zip has same typevar as original")
+	}
 }
