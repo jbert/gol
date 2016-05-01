@@ -229,4 +229,12 @@ func TestListCopyType(t *testing.T) {
 	if lStr == restStr {
 		t.Fatalf("Rest has same typevar as original")
 	}
+
+	l = makeListTo(5)
+	lStr = l.Type().String() // Force lazy init before copy
+	lCons := l.Cons(NewNodeInt(1))
+	lConsStr := lCons.Type().String()
+	if lStr == lConsStr {
+		t.Fatalf("Cons has same typevar as original")
+	}
 }

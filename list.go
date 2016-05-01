@@ -125,9 +125,9 @@ func (nl *NodeList) String() string {
 */
 
 func (nl *NodeList) Cons(n Node) *NodeList {
-	listCopy := *nl
-	listCopy.children = NewNodePair(n, nl.children)
-	return &listCopy
+	ret := NewNodeList()
+	ret.children = NewNodePair(n, nl.children)
+	return ret
 }
 
 func (nl *NodeList) Append(n Node) *NodeList {
