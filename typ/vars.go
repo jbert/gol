@@ -1,7 +1,6 @@
 package typ
 
 import (
-	"errors"
 	"fmt"
 	"log"
 )
@@ -67,13 +66,22 @@ func NewVar() *Var {
 	}
 }
 
-var ErrNotFound = errors.New("Not found")
+type ErrNotFound interface {
+	error
+	isNotFound()
+}
+type errNotFound string
+
+func (e errNotFound) isNotFound() {}
+func (e errNotFound) Error() string {
+	return string(e)
+}
 
 func (v *Var) String() string {
 	ty, err := v.Lookup()
 	//log.Printf("Lookup returned ptr [%p] and errptr [%p]\n", ty, err)
 	if err != nil {
-		if err == ErrNotFound {
+		if err, ok := err.(ErrNotFound); ok {
 			return fmt.Sprintf("TV(%s)", v.name)
 		} else {
 			panic(fmt.Sprintf("Error from type lookup: %s", err))
@@ -91,7 +99,7 @@ func (v *Var) Lookup() (Type, error) {
 	//log.Printf("lOOKUP: map has ptr [%v] ok %v\n", found, ok)
 	if !ok {
 		//log.Printf("LOOKUP: var (%s) not found\n", v.name)
-		return v, ErrNotFound
+		return v, errNotFound(fmt.Sprintf("Type var %s not found", v.name))
 	}
 
 	foundVar, foundIsVar := found.(*Var)
@@ -109,7 +117,7 @@ func (v *Var) endOfChain() (Type, error) {
 	// Find the end of v's chain (or may be v itself)
 	endType, err := v.Lookup()
 	if err != nil {
-		if err == ErrNotFound {
+		if err, ok := err.(ErrNotFound); ok {
 			// On ErrNotFound, the last var is returned
 		} else {
 			return nil, err
@@ -119,7 +127,7 @@ func (v *Var) endOfChain() (Type, error) {
 }
 
 func (v *Var) Unify(t Type) error {
-	log.Printf("Unifying type %s [%T] with var %s\n", t, t, v.name)
+	log.Printf("Unify [%s] with [%s]\n", v.name, t)
 
 	// Find the end of v's chain
 	vEnd, err := v.endOfChain()
