@@ -28,9 +28,7 @@ func (nl *NodeList) Foreach(f func(n Node) error) error {
 
 func (nl *NodeList) Map(f func(n Node) (Node, error)) (*NodeList, error) {
 	p := nl.children
-	listCopy := *nl
-	res := &listCopy
-	res.children = Nil()
+	res := NewNodeList()
 	for !p.IsNil() {
 		v, err := f(p.Car)
 		if err != nil {

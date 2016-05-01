@@ -206,3 +206,27 @@ func TestListDestructiveMap(t *testing.T) {
 	}
 }
 */
+
+// List copy funcs were copying the lazy-init type, check for that here
+func TestListCopyType(t *testing.T) {
+	l := makeListTo(5)
+	lStr := l.Type().String() // Force lazy init before copy
+
+	l2, _ := l.Map(func(child Node) (Node, error) {
+		ni := child.(*NodeInt)
+		return NewNodeInt(ni.Value() * 2), nil
+	})
+
+	l2Str := l2.Type().String()
+	if lStr == l2Str {
+		t.Fatalf("Mapped list has same typevar as original")
+	}
+
+	l = makeListTo(5)
+	lStr = l.Type().String() // Force lazy init before copy
+	rest := l.Rest()
+	restStr := rest.Type().String()
+	if lStr == restStr {
+		t.Fatalf("Rest has same typevar as original")
+	}
+}
