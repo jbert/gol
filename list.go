@@ -70,14 +70,13 @@ func (nl *NodeList) First() Node {
 }
 
 func (nl *NodeList) Rest() *NodeList {
-	listCopy := *nl
-	newList := &listCopy
+	ret := NewNodeList()
 	var ok bool
-	newList.children, ok = newList.children.Cdr.(*NodePair)
+	ret.children, ok = nl.children.Cdr.(*NodePair)
 	if !ok {
-		panic(fmt.Sprintf("NodeList not a list: %T", newList.children.Cdr))
+		panic(fmt.Sprintf("NodeList not a list: %T", nl.children.Cdr))
 	}
-	return newList
+	return ret
 }
 
 func (nl *NodeList) String() string {
