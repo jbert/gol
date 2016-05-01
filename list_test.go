@@ -21,7 +21,7 @@ func TestListZip(t *testing.T) {
 	}
 
 	z := l.Zip(l2)
-	if z.String() != "((1 2) (2 4) (3 6) (4 8) (5 10))" {
+	if z.String() != "((1 . 2) (2 . 4) (3 . 6) (4 . 8) (5 . 10))" {
 		t.Fatalf("Can't zip: %s", z)
 	}
 
