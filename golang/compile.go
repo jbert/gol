@@ -312,10 +312,25 @@ func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda, vals *gol.NodeList) (
 	}
 
 	letForLambda := &gol.NodeLet{
-		NodeList: nl.NodeList,
+		//		NodeList: nl.NodeList,
 		Bindings: bindings,
 		Body:     nl.Body,
 	}
+	lambdaVarType, ok := nl.Type().(*typ.Var)
+	if !ok {
+		// Not an error if it's a functype, but we assign vars to all nodes....
+		return "", fmt.Errorf("Odd - not a var, instead a %T: %s\n", nl.Type(), nl.Type())
+	}
+	lambdaType, err := lambdaVarType.Lookup()
+	if err != nil {
+		return "", fmt.Errorf("Can't look up lambda var: %s [%T]\n", lambdaVarType, lambdaVarType)
+	}
+	funcType, ok := lambdaType.(typ.Func)
+	if !ok {
+		return "", fmt.Errorf("Lambda doesn't have function type: %s [%T]\n", nl.Type(), nl.Type())
+	}
+
+	letForLambda.NodeList = gol.NewNodeListType(funcType.Result)
 	return gb.compileLet(letForLambda)
 }
 

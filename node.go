@@ -236,6 +236,12 @@ func NewNodeList() *NodeList {
 	}
 }
 
+func NewNodeListType(t typ.Type) *NodeList {
+	nl := NewNodeList()
+	nl.t = t
+	return nl
+}
+
 //func (nl *NodeList) SetType(t typ.Type) error {
 //	return nl.NodeBase.SetType(t)
 //}
