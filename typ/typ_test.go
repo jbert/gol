@@ -187,3 +187,33 @@ func TestVarUnifyChain(t *testing.T) {
 	}
 	checkAll(v, "Int")
 }
+
+func TestUnifyFail(t *testing.T) {
+	i := String
+	v := Void
+	err := i.Unify(v)
+	if err == nil {
+		log.Fatalf("Should error trying to unify String and void")
+	} else {
+		log.Printf("Good - String and Void failed to unify with: %s\n", err)
+	}
+
+	a := NewVar()
+	err = a.Unify(String)
+	if err != nil {
+		log.Fatalf("Can't unify var with String")
+	}
+
+	b := NewVar()
+	err = b.Unify(Symbol)
+	if err != nil {
+		log.Fatalf("Can't unify var with symbol")
+	}
+
+	err = a.Unify(b)
+	if err == nil {
+		log.Fatalf("Can unify two vars - which are already unified with String and Symbol")
+	} else {
+		log.Printf("Good - var(String) and var(symbol) failed to unify with: %s\n", err)
+	}
+}

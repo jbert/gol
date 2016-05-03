@@ -53,7 +53,7 @@ func unifyWithVarOrError(lh Type, rh Type) error {
 	if ok {
 		return rhVar.Unify(lh)
 	}
-	return fmt.Errorf("Can't unify: %T with %T", lh, rh)
+	return fmt.Errorf("Can't unify: %T (%s) with %T (%s)", lh, lh, rh, rh)
 }
 
 type Func struct {
