@@ -194,6 +194,9 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case *gol.NodeIdentifier:
 		return gb.compileIdentifier(n)
 
+	case *gol.NodeLambda:
+		return gb.compileLambda(n)
+
 	case *gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSymbol:
@@ -216,6 +219,56 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
+}
+
+func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda) (string, error) {
+
+	lambdaVarType, ok := nl.Type().(*typ.Var)
+	if !ok {
+		// Not an error if it's a functype, but we assign vars to all nodes....
+		return "", fmt.Errorf("Odd - not a var, instead a %T: %s\n", nl.Type(), nl.Type())
+	}
+	lambdaType, err := lambdaVarType.Lookup()
+	if err != nil {
+		return "", fmt.Errorf("Can't look up lambda var: %s [%T]\n", lambdaVarType, lambdaVarType)
+	}
+	funcType, ok := lambdaType.(typ.Func)
+	if !ok {
+		return "", fmt.Errorf("Lambda doesn't have function type: %s [%T]\n", nl.Type(), nl.Type())
+	}
+
+	if nl.Args.Len() != len(funcType.Args) {
+		return "", fmt.Errorf("Arg/type mismatch: %d != %d\n", nl.Args.Len(), len(funcType.Args))
+	}
+
+	i := 0
+	strArgs := make([]string, len(funcType.Args))
+	err = nl.Args.Foreach(func(child gol.Node) error {
+		golangType, err := golangStringForType(funcType.Args[i])
+		if err != nil {
+			return err
+		}
+
+		id := child.String()
+		strArgs[i] = fmt.Sprintf("%s %s", mangleIdentifier(id), golangType)
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	golangRetType, err := golangStringForType(funcType.Result)
+	if err != nil {
+		return "", err
+	}
+	s := fmt.Sprintf("func(%s) %s {", strings.Join(strArgs, ", "), golangRetType)
+	body, err := gb.compile(nl.Body)
+	if err != nil {
+		return "", err
+	}
+	s += "return " + body
+	s += "}"
+	return s, nil
 }
 
 func (gb *GolangBackend) compileIdentifier(ni *gol.NodeIdentifier) (string, error) {
@@ -262,7 +315,7 @@ func (gb *GolangBackend) compileList(nl *gol.NodeList) (string, error) {
 	case *gol.NodeIdentifier:
 		return gb.compileFuncCall(fst, nl.Rest())
 	case *gol.NodeLambda:
-		return gb.compileLambda(fst, nl.Rest())
+		return gb.compileLambdaApplication(fst, nl.Rest())
 	default:
 		return "", fmt.Errorf("Non-applicable in head position: %T", fst)
 	}
@@ -293,7 +346,7 @@ func (gb *GolangBackend) compileFuncCall(funcNameNode *gol.NodeIdentifier, argNo
 	return s, nil
 }
 
-func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda, vals *gol.NodeList) (string, error) {
+func (gb *GolangBackend) compileLambdaApplication(nl *gol.NodeLambda, vals *gol.NodeList) (string, error) {
 	bindings := make(map[string]gol.Node)
 
 	args := nl.Args
