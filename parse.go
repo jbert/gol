@@ -153,7 +153,7 @@ func (p *Parser) parseAtom() (Node, error) {
 		if err != nil {
 			return nil, posErrorf(tok.Pos, "Can't parse [%s] as integer: %s", tok.Value, err)
 		}
-		return &NodeInt{value: v}, nil
+		return NewNodeInt(v), nil
 	default:
 		panic("Unknown atom type")
 	}
