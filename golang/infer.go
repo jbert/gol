@@ -67,12 +67,19 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 
 			if last {
 				// Type of last child should match that of progn as a whole
-				//log.Printf("Inferring type %s for child %s (type %s)\n", n.Type(), child, child.Type())
-				child.NodeUnify(n.Type(), typeEnv)
+				log.Printf("Inferring type %s for child %s (type %s)\n", n.Type(), child, child.Type())
+				err = child.NodeUnify(n.Type(), typeEnv)
+				if err != nil {
+					return err
+				}
 			} else {
 				// All other children should be void
-				//log.Printf("Inferring void for %s\n", child)
-				child.NodeUnify(typ.Void, typeEnv)
+				log.Printf("Inferring void for %s [%T] %s\n", child, child.Type(), child.Type())
+				err = child.NodeUnify(typ.Void, typeEnv)
+				if err != nil {
+					return err
+				}
+				log.Printf("after infer void for %s [%T] %s\n", child, child.Type(), child.Type())
 			}
 			changed, err := gb.infer(child, typeEnv)
 			if err != nil {
@@ -141,14 +148,20 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 
 		resultType := node.Body.Type()
 
-		node.NodeUnify(typ.NewFunc(argTypes, resultType), typeEnv)
+		err = node.NodeUnify(typ.NewFunc(argTypes, resultType), typeEnv)
+		if err != nil {
+			return 0, err
+		}
 
 	case *gol.NodeIdentifier:
 		log.Printf("infer: NodeIdentifier (%s)\n", n.String())
 		newType, err := typeEnv.Lookup(n.String())
 		if err == nil {
 			log.Printf("infer: NodeIdentifier (%s) [%s]\n", n.String(), newType.String())
-			node.NodeUnify(newType, typeEnv)
+			err = node.NodeUnify(newType, typeEnv)
+			if err != nil {
+				return 0, err
+			}
 		}
 
 	case *gol.NodeLet:
@@ -176,10 +189,16 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		}
 		numChanges += childChanges
 
-		node.NodeUnify(node.Body.Type(), typeEnv)
+		err = node.NodeUnify(node.Body.Type(), typeEnv)
+		if err != nil {
+			return 0, err
+		}
 
 	case *gol.NodeInt:
-		node.NodeUnify(typ.Int, typeEnv)
+		err := node.NodeUnify(typ.Int, typeEnv)
+		if err != nil {
+			return 0, err
+		}
 
 	case *gol.NodeError:
 	case *gol.NodeSymbol:
