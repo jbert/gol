@@ -63,9 +63,21 @@ func ErrorTestCases() []TestCase {
 	}
 }
 
-func TypeFailTestCases() []TestCase {
+func TypeTestCases() []TestCase {
 	return []TestCase{
-		{`(+ "foo" 1)`, "", "error"},
+		{`(+ "foo" 1)`, "", "error - what kind?"},
+
+		{`"foo"`, `"foo"`, ""},
+		{`(+ 1 2)`, `3`, ""},
+		{`(number->string (+ 1 2))`, `"3"`, ""},
+
+		{`(string-concat "foo" "bar")`, `"foobar"`, ""},
+		{`(string-concat (number->string 1) (number->string 2))`, `"12"`, ""},
+
+		{`(let ((f (lambda (x) (+ 1 x))))
+			 (f (+ 1 2)))`, "4", ""},
+		{`(let ((f (lambda (x) (+ 1 x))))
+			 (f "foo"))`, "", "error - what kind?"},
 	}
 }
 
