@@ -174,17 +174,17 @@ func (np NodeProcedure) Apply(e *Evaluator, argVals *gol.NodeList) (gol.Node, er
 
 	f := gol.Frame{}
 	z := np.Args.Zip(argVals)
-	_, err := z.Map(func(n gol.Node) (gol.Node, error) {
+	err := z.Foreach(func(n gol.Node) error {
 		pair, ok := n.(*gol.NodePair)
 		if !ok {
-			return nil, gol.NodeErrorf(argVals, "Internal error - zip returns non-pair")
+			return gol.NodeErrorf(argVals, "Internal error - zip returns non-pair")
 		}
 		id := pair.Car
 		val := pair.Cdr
 		idStr := id.String()
 
 		f[idStr] = val
-		return nil, nil
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -205,13 +205,13 @@ func (e *Evaluator) evalProgn(np *gol.NodeProgn) (gol.Node, error) {
 	lastVal = gol.NewNodeList()
 
 	body := np.Rest()
-	_, err := body.Map(func(child gol.Node) (gol.Node, error) {
+	err := body.Foreach(func(child gol.Node) error {
 		v, err := e.Eval(child)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		lastVal = v
-		return v, nil
+		return nil
 	})
 	if err != nil {
 		return nil, err
