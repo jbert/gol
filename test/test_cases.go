@@ -63,6 +63,12 @@ func ErrorTestCases() []TestCase {
 	}
 }
 
+func TypeFailTestCases() []TestCase {
+	return []TestCase{
+		{`(+ "foo" 1)`, "", "error"},
+	}
+}
+
 func BasicTestCases() []TestCase {
 	return []TestCase{
 		{"1", "1", ""},

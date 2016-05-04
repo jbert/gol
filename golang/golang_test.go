@@ -23,6 +23,10 @@ func TestGolQuote(t *testing.T) {
 	runCases(t, test.QuoteTestCases())
 }
 
+func TestTypeFail(t *testing.T) {
+	runCases(t, test.TypeFailTestCases())
+}
+
 func TestGolBasicTestCases(t *testing.T) {
 	runCases(t, test.BasicTestCases())
 }
