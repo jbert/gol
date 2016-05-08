@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"log"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func runCases(t *testing.T, testCases []test.TestCase) {
 
 CASE:
 	for i, tc := range testCases {
-		//		fmt.Printf("%d: running: %s\n", i, tc.code)
+		log.Printf("%d: running: %s\n", i, tc.Code)
 		evalStr, errStr := evaluateProgram(tc.Code)
 		if !strings.HasPrefix(errStr, tc.ErrOutput) {
 			t.Errorf("%d@ wrong error [%s] != [%s] for code: %s\n", i, errStr, tc.ErrOutput, tc.Code)
@@ -36,7 +37,7 @@ CASE:
 			t.Errorf("%d@ wrong result [%s] != [%s] for code: %s\n", i, evalStr, tc.Result, tc.Code)
 			continue CASE
 		}
-		//		t.Logf("%d: AOK!\n", i)
+		t.Logf("%d: AOK!\n", i)
 	}
 }
 

@@ -147,7 +147,7 @@ func (e *Evaluator) evalLet(nl *gol.NodeLet) (gol.Node, error) {
 	e.Env = e.Env.WithFrame(f)
 
 	for k, _ := range nl.Bindings {
-		f[k] = gol.NODE_NIL
+		f[k] = gol.Nil()
 	}
 	for k, v := range nl.Bindings {
 		var err error

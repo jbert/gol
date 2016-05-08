@@ -99,21 +99,21 @@ func (p *Parser) parseSexp() (Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &NodeQuote{Arg: arg, Quasi: false}, nil
+		return NewNodeQuote(arg, false), nil
 	case tokBackQuote:
 		p.stepToken()
 		arg, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		return &NodeQuote{Arg: arg, Quasi: true}, nil
+		return NewNodeQuote(arg, true), nil
 	case tokComma:
 		p.stepToken()
 		arg, err := p.parseSexp()
 		if err != nil {
 			return nil, err
 		}
-		return &NodeUnQuote{Arg: arg}, nil
+		return NewNodeUnQuote(arg), nil
 	case tokLParen:
 		return p.parseList()
 	default:

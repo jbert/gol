@@ -148,8 +148,6 @@ var NODE_TRUE = &NodeBool{
 	},
 }
 
-var NODE_NIL = &NodeList{}
-
 func (nb *NodeBool) IsTrue() bool {
 	return nb.String() == "#t"
 }
@@ -268,6 +266,13 @@ type NodeUnQuote struct {
 	Arg Node
 }
 
+func NewNodeUnQuote(arg Node) *NodeUnQuote {
+	return &NodeUnQuote{
+		NodeList: NewNodeList(),
+		Arg:      arg,
+	}
+}
+
 func (nq *NodeUnQuote) String() string {
 	return "," + nq.Arg.String()
 }
@@ -276,6 +281,14 @@ type NodeQuote struct {
 	*NodeList
 	Arg   Node
 	Quasi bool
+}
+
+func NewNodeQuote(arg Node, quasi bool) *NodeQuote {
+	return &NodeQuote{
+		NodeList: NewNodeList(),
+		Arg:      arg,
+		Quasi:    quasi,
+	}
 }
 
 func (nq *NodeQuote) String() string {

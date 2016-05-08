@@ -67,7 +67,7 @@ func transformQuasiQuote(n *NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NodeQuote{NodeList: n, Arg: child, Quasi: true}, nil
+	return NewNodeQuote(child, true), nil
 }
 
 func transformQuote(n *NodeList) (Node, error) {
@@ -78,7 +78,7 @@ func transformQuote(n *NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NodeQuote{NodeList: n, Arg: child, Quasi: false}, nil
+	return NewNodeQuote(child, false), nil
 }
 
 func transformUnQuote(n *NodeList) (Node, error) {
@@ -89,7 +89,7 @@ func transformUnQuote(n *NodeList) (Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NodeUnQuote{NodeList: n, Arg: child}, nil
+	return NewNodeUnQuote(child), nil
 }
 
 func transformIf(n *NodeList) (Node, error) {

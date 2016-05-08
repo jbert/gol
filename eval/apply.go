@@ -145,7 +145,7 @@ func display(e *Evaluator, nodes *gol.NodeList) (gol.Node, error) {
 
 	s := nodes.First().String()
 	fmt.Fprintf(e.out, "%s", s)
-	return gol.NODE_NIL, nil
+	return gol.Nil(), nil
 }
 
 func list(e *Evaluator, nodes *gol.NodeList) (gol.Node, error) {
