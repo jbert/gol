@@ -1,5 +1,7 @@
 package gol
 
+import "errors"
+
 func Transform(node Node) (Node, error) {
 	switch n := node.(type) {
 	case *NodeList:
@@ -135,6 +137,11 @@ func transformError(n *NodeList) (Node, error) {
 }
 
 func transformProgn(n *NodeList) (Node, error) {
+	if n.Len() == 1 {
+		// Empty progn
+		return nil, errors.New("Empty progn not allowed")
+	}
+
 	children, err := transformNodes(n.Rest())
 	if err != nil {
 		return nil, err

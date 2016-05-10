@@ -106,7 +106,7 @@ func BasicTestCases() []TestCase {
 		{`(let ((f (lambda (x) (+ 1 x))))
 				(f (+ 1 2)))`, "4", ""},
 		{`(progn 1 2 3)`, "3", ""},
-		{`(progn)`, "()", ""},
+		{`(progn)`, "", "Empty progn not allowed"},
 		{`(progn 1)`, "1", ""},
 		{`(progn 1 2 (+ 1 2))`, "3", ""},
 
