@@ -114,7 +114,7 @@ func BasicTestCases() []TestCase {
 		{`"hello \" world"`, "hello \" world", ""},
 
 		{`(let ((x 1)) (void) (void) x)`, "1", ""},
-		{`((lambda (x) (+ 1 x) (+ 2 x)) 2)`, "4", ""},
+		{`((lambda (x) (void) (+ 2 x)) 2)`, "4", ""},
 		{`(progn (void) "bar")`, "bar", ""},
 		{`#t`, "#t", ""},
 		{`#f`, "#f", ""},

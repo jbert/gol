@@ -175,18 +175,23 @@ func (gb *GolangBackend) compileBody() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf(`
-	fmt.Printf("%%v\n", %s)
+	val := %s
+	fmt.Printf("%%s\n", schemeRepresentation(val))
 `, s), nil
 }
 
 func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	switch n := node.(type) {
-	case *gol.NodeProgn:
-		return gb.compileProgn(n)
 	case *gol.NodeInt:
 		return gb.compileInt(n)
 	case *gol.NodeString:
 		return gb.compileString(n)
+	case *gol.NodeBool:
+		return gb.compileBool(n)
+
+	case *gol.NodeProgn:
+		return gb.compileProgn(n)
+
 	case *gol.NodeList:
 		return gb.compileList(n)
 	case *gol.NodeLet:
@@ -200,8 +205,6 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case *gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSymbol:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case *gol.NodeBool:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeQuote:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -394,6 +397,14 @@ func (gb *GolangBackend) compileString(ns *gol.NodeString) (string, error) {
 	return fmt.Sprintf("%q", ns), nil
 }
 
+func (gb *GolangBackend) compileBool(nb *gol.NodeBool) (string, error) {
+	if nb.IsTrue() {
+		return "true", nil
+	} else {
+		return "false", nil
+	}
+}
+
 // Emit a function call, and stack the definition for the postamble
 func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	if progn.Len() == 0 {
@@ -507,6 +518,19 @@ func display(args ...interface{}) {
 }
 
 func void() {
+}
+
+func schemeRepresentation(v interface{}) string {
+	vb, ok := v.(bool)
+	if ok {
+		if vb {
+			return "#t"
+		} else {
+			return "#f"
+		}
+	}
+
+	return fmt.Sprintf("%v", v)
 }
 
 `
