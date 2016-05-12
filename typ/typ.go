@@ -71,6 +71,9 @@ func (f Func) String() string {
 }
 
 func variadicUnify(a, b []Type) bool {
+	if len(a) == 0 && len(b) == 0 {
+		return true
+	}
 	if len(b) < len(a) {
 		a, b = b, a
 	}

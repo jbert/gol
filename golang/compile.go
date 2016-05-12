@@ -185,8 +185,8 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return gb.compileProgn(n)
 	case *gol.NodeInt:
 		return gb.compileInt(n)
-		//	case gol.NodeLambda:
-		//		return gb.compileLambda(n)
+	case *gol.NodeString:
+		return gb.compileString(n)
 	case *gol.NodeList:
 		return gb.compileList(n)
 	case *gol.NodeLet:
@@ -200,8 +200,6 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case *gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSymbol:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case *gol.NodeString:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeBool:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -391,6 +389,11 @@ func (gb *GolangBackend) compileInt(ni *gol.NodeInt) (string, error) {
 	return fmt.Sprintf("%d", ni.Value()), nil
 }
 
+func (gb *GolangBackend) compileString(ns *gol.NodeString) (string, error) {
+	// %q emits golang-syntax escaped string, including quotes
+	return fmt.Sprintf("%q", ns), nil
+}
+
 // Emit a function call, and stack the definition for the postamble
 func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	if progn.Len() == 0 {
@@ -476,15 +479,48 @@ func __MINUS__(args ...int64) int64 {
 	return total
 }
 
+func display(args ...interface{}) {
+	if len(args) < 1 {
+		panic(fmt.Sprintf("Less than 1 args to display"))
+	}
+	first := true
+	ARG:
+	for _, arg := range args {
+		if !first {
+			fmt.Printf(" ")
+			first = false
+		}
+
+		str, ok := arg.(string)
+		if ok {
+			fmt.Printf("%s", str)
+			continue ARG
+		} 
+
+		strArg, ok := arg.(fmt.Stringer)
+		if !ok {
+			panic(fmt.Sprintf("Type %T doesn't implement fmt.Stringer", arg))
+		}
+		fmt.Printf("%s", strArg)
+		continue ARG
+	}
+}
+
+func void() {
+}
+
 `
 }
 
 func newDefaultTypeEnv() typ.Env {
 	e := typ.NewEnv()
 	ints := []typ.Type{typ.NewVariadic(typ.Int)}
+	anys := []typ.Type{typ.NewVariadic(typ.Any)}
 	f := typ.Frame{
-		"-": typ.NewFunc(ints, typ.Int),
-		"+": typ.NewFunc(ints, typ.Int),
+		"-":       typ.NewFunc(ints, typ.Int),
+		"+":       typ.NewFunc(ints, typ.Int),
+		"display": typ.NewFunc(anys, typ.Void),
+		"void":    typ.NewFunc([]typ.Type{}, typ.Void),
 	}
 	return e.WithFrame(f)
 }
