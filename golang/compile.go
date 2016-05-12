@@ -175,7 +175,7 @@ func (gb *GolangBackend) compileBody() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf(`
-	fmt.Printf("%%d\n", %s)
+	fmt.Printf("%%v\n", %s)
 `, s), nil
 }
 

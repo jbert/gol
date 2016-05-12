@@ -108,14 +108,14 @@ func BasicTestCases() []TestCase {
 		{`(progn (void) (void) 3)`, "3", ""},
 		{`(progn)`, "", "Empty progn not allowed"},
 		{`(progn 1)`, "1", ""},
-		{`(progn 1 2 (+ 1 2))`, "3", ""},
+		{`(progn (void) (void) (+ 1 2))`, "3", ""},
 
 		{`"hello world"`, "hello world", ""},
 		{`"hello \" world"`, "hello \" world", ""},
 
-		{`(let ((x 1)) 3 2 x)`, "1", ""},
+		{`(let ((x 1)) (void) (void) x)`, "1", ""},
 		{`((lambda (x) (+ 1 x) (+ 2 x)) 2)`, "4", ""},
-		{`(progn "foo" "bar")`, "bar", ""},
+		{`(progn (void) "bar")`, "bar", ""},
 		{`#t`, "#t", ""},
 		{`#f`, "#f", ""},
 
