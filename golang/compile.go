@@ -202,6 +202,9 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case *gol.NodeLambda:
 		return gb.compileLambda(n)
 
+	case *gol.NodeIf:
+		return gb.compileIf(n)
+
 	case *gol.NodeError:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSymbol:
@@ -209,8 +212,6 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 	case *gol.NodeQuote:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeUnQuote:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case *gol.NodeIf:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSet:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -220,6 +221,36 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
+}
+
+func (gb *GolangBackend) compileIf(ni *gol.NodeIf) (string, error) {
+	golangRetType, err := golangStringForType(ni.Type())
+	ifExpr, err := gb.compile(ni.Condition)
+	if err != nil {
+		return "", err
+	}
+	tExpr, err := gb.compile(ni.TBranch)
+	if err != nil {
+		return "", err
+	}
+	fExpr, err := gb.compile(ni.FBranch)
+	if err != nil {
+		return "", err
+	}
+	s := fmt.Sprintf(`func() %s {
+		if %s {
+			return %s
+		} else {
+			return %s
+		}
+	}()
+`,
+		golangRetType,
+		ifExpr,
+		tExpr,
+		fExpr)
+
+	return s, nil
 }
 
 func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda) (string, error) {

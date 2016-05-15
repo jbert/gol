@@ -199,6 +199,36 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+	case *gol.NodeIf:
+		log.Printf("infer: NodeIf (%s)\n", n.String())
+		childChanges, err := gb.infer(node.Condition, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
+		childChanges, err = gb.infer(node.TBranch, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
+		childChanges, err = gb.infer(node.FBranch, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
+
+		err = node.Condition.NodeUnify(typ.Bool, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		err = node.TBranch.NodeUnify(node.Type(), typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		err = node.FBranch.NodeUnify(node.Type(), typeEnv)
+		if err != nil {
+			return 0, err
+		}
 
 	case *gol.NodeError:
 	case *gol.NodeSymbol:
@@ -212,8 +242,6 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 	case *gol.NodeQuote:
 		panic("implement")
 	case *gol.NodeUnQuote:
-		panic("implement")
-	case *gol.NodeIf:
 		panic("implement")
 	case *gol.NodeSet:
 		panic("implement")
