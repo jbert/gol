@@ -334,25 +334,23 @@ type NodeLet struct {
 // ----------------------------------------
 
 type NodeError struct {
-	Node
-	msg string
+	NodeBase
+	source Node
+	msg    string
 }
 
-func (ne *NodeError) Type() typ.Type {
-	return typ.Void
-}
-func (ne *NodeError) NodeUnify(t typ.Type, env typ.Env) error {
-	return fmt.Errorf("Can't unify an error node type on an error")
+func (ne *NodeError) Pos() Position {
+	return ne.source.Pos()
 }
 
 func (ne *NodeError) String() string {
 	return ne.Error()
 }
 func (ne *NodeError) Error() string {
-	pos := ne.Pos()
-	return fmt.Sprintf("%s: %s line %d:%d [%s]", ne.msg, pos.File, pos.Line, pos.Column, ne.Node)
+	pos := ne.source.Pos()
+	return fmt.Sprintf("%s: %s line %d:%d [%s]", ne.msg, pos.File, pos.Line, pos.Column, ne.source)
 }
 
 func NodeErrorf(n Node, f string, args ...interface{}) *NodeError {
-	return &NodeError{Node: n, msg: fmt.Sprintf(f, args...)}
+	return &NodeError{source: n, msg: fmt.Sprintf(f, args...)}
 }

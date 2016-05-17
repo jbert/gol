@@ -206,7 +206,8 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return gb.compileIf(n)
 
 	case *gol.NodeError:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
+		return gb.compileError(n)
+
 	case *gol.NodeSymbol:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeQuote:
@@ -221,6 +222,16 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
+}
+
+func (gb *GolangBackend) compileError(ne *gol.NodeError) (string, error) {
+	golangType, err := golangStringForType(ne.Type())
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(`func() %s {
+		panic("%s")
+	}()`, golangType, ne.String()), nil
 }
 
 func (gb *GolangBackend) compileIf(ni *gol.NodeIf) (string, error) {

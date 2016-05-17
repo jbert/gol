@@ -231,6 +231,7 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		}
 
 	case *gol.NodeError:
+
 	case *gol.NodeSymbol:
 	case *gol.NodeString:
 	case *gol.NodeBool:

@@ -133,7 +133,7 @@ func transformError(n *NodeList) (Node, error) {
 	if n.Len() != 2 {
 		return nil, NodeErrorf(n, "Bad error expression - exactly one string required")
 	}
-	return &NodeError{n.Nth(1), n.Nth(1).String()}, nil
+	return NodeErrorf(n.Nth(1), n.Nth(1).String()), nil
 }
 
 func transformProgn(n *NodeList) (Node, error) {
