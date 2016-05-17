@@ -20,6 +20,7 @@ func MakeDefaultEnvironment() Environment {
 			"append":  &NodeBuiltin{f: listAppend, description: "append"},
 			"apply":   &NodeBuiltin{f: apply, description: "apply"},
 			"zero?":   &NodeBuiltin{f: zerop, description: "zerop"},
+			"void":    &NodeBuiltin{f: void, description: "void"},
 		},
 	}
 	return defEnv
@@ -229,4 +230,8 @@ func zerop(e *Evaluator, nodes *gol.NodeList) (gol.Node, error) {
 	} else {
 		return gol.NODE_FALSE, nil
 	}
+}
+
+func void(e *Evaluator, nodes *gol.NodeList) (gol.Node, error) {
+	return gol.Nil(), nil
 }
