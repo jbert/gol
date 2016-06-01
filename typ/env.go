@@ -25,3 +25,8 @@ func (e Env) Lookup(s string) (Type, error) {
 	}
 	return nil, fmt.Errorf("No type found for identifier [%s]", s)
 }
+
+func (e *Env) AddTopLevel(k string, t Type) {
+	f0 := (*e)[0]
+	f0[k] = t
+}

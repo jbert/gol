@@ -70,7 +70,7 @@ func CompileFile(filename string, outFilename string) error {
 
 type GolangBackend struct {
 	parseTree gol.Node
-	funcDefns []string
+	//	topLevelDefns []string
 }
 
 func NewGolangBackend(parseTree gol.Node) *GolangBackend {
@@ -207,6 +207,8 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 
 	case *gol.NodeError:
 		return gb.compileError(n)
+	case *gol.NodeDefine:
+		return gb.compileDefine(n)
 
 	case *gol.NodeSymbol:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
@@ -216,12 +218,34 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	case *gol.NodeSet:
 		return "", gol.NodeErrorf(n, "TODO node type %T", node)
-	case *gol.NodeDefine:
-		return "", gol.NodeErrorf(n, "TODO node type %T", node)
 	default:
 		return "", gol.NodeErrorf(n, "Unrecognised node type %T", node)
 
 	}
+}
+
+func (gb *GolangBackend) compileDefine(nd *gol.NodeDefine) (string, error) {
+	golangValue, err := gb.compile(nd.Value)
+	if err != nil {
+		return "", err
+	}
+
+	symbolGolangType, err := golangStringForType(nd.Value.Type())
+	if err != nil {
+		return "", err
+	}
+
+	s := gb.declareVar(nd.Symbol.String(), symbolGolangType)
+	s += fmt.Sprintf("%s = %s\n",
+		nd.Symbol.String(),
+		golangValue,
+	)
+	return s, nil
+}
+
+func (gb *GolangBackend) declareVar(varname string, vartype string) string {
+	return fmt.Sprintf("var %s %s\n", varname, vartype)
+
 }
 
 func (gb *GolangBackend) compileError(ne *gol.NodeError) (string, error) {
@@ -367,6 +391,7 @@ func (gb *GolangBackend) compileList(nl *gol.NodeList) (string, error) {
 func mangleIdentifier(s string) string {
 	s = strings.Replace(s, "+", "__PLUS__", -1)
 	s = strings.Replace(s, "-", "__MINUS__", -1)
+	s = strings.Replace(s, "=", "__EQUAL__", -1)
 	return s
 }
 
@@ -447,7 +472,6 @@ func (gb *GolangBackend) compileBool(nb *gol.NodeBool) (string, error) {
 	}
 }
 
-// Emit a function call, and stack the definition for the postamble
 func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	if progn.Len() == 0 {
 		return "", nil
@@ -485,20 +509,24 @@ func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-func (gb *GolangBackend) saveFunc(s string) {
-	gb.funcDefns = append(gb.funcDefns, s)
+/*
+func (gb *GolangBackend) saveTopLevelDefn(s string) {
+	gb.topLevelDefns = append(gb.topLevelDefns, s)
 }
+*/
 
 func (gb *GolangBackend) compilePostamble() (string, error) {
 	buf := &bytes.Buffer{}
 
 	buf.WriteString("}\n")
-	for _, s := range gb.funcDefns {
-		buf.WriteString("\n")
-		buf.WriteString(s)
+	/*
+		for _, s := range gb.topLevelDefns {
+			buf.WriteString("\n")
+			buf.WriteString(s)
 
-		buf.WriteString("\n")
-	}
+			buf.WriteString("\n")
+		}
+	*/
 	return buf.String(), nil
 }
 
@@ -530,6 +558,19 @@ func __MINUS__(args ...int64) int64 {
 		total -= n
 	}
 	return total
+}
+
+func __EQUAL__(args ...int64) bool {
+	if len(args) < 2 {
+		panic(fmt.Sprintf("Less than 2 args to numeric ="))
+	}
+	first := args[0]
+	for _, n := range args[1:] {
+		if n != first {
+			return false
+		}
+	}
+	return true
 }
 
 func display(args ...interface{}) {
@@ -585,6 +626,7 @@ func newDefaultTypeEnv() typ.Env {
 	f := typ.Frame{
 		"-":       typ.NewFunc(ints, typ.Int),
 		"+":       typ.NewFunc(ints, typ.Int),
+		"=":       typ.NewFunc(ints, typ.Bool),
 		"display": typ.NewFunc(anys, typ.Void),
 		"void":    typ.NewFunc([]typ.Type{}, typ.Void),
 	}

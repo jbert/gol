@@ -236,6 +236,17 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 	case *gol.NodeString:
 	case *gol.NodeBool:
 
+	case *gol.NodeDefine:
+		// JB - hack into top level
+		typeEnv.AddTopLevel(node.Symbol.String(), node.Value.Type())
+		log.Printf("infer: NodeDefine (%s)\n", n.String())
+
+		childChanges, err := gb.infer(node.Value, typeEnv)
+		if err != nil {
+			return 0, err
+		}
+		numChanges += childChanges
+
 	case *gol.NodePair:
 		// TODO: use an And type here....
 		// Can leave newType as Any since all Pairs have an inferred type
@@ -245,8 +256,6 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 	case *gol.NodeUnQuote:
 		panic("implement")
 	case *gol.NodeSet:
-		panic("implement")
-	case *gol.NodeDefine:
 		panic("implement")
 
 	default:
