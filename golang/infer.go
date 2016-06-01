@@ -134,11 +134,27 @@ func (gb *GolangBackend) infer(n gol.Node, typeEnv typ.Env) (int, error) {
 		log.Printf("infer: NodeLambda (%s)\n", n.String())
 		argTypes := make([]typ.Type, node.Args.Len())
 		i := 0
-		node.Args.Foreach(func(child gol.Node) error {
+		frame := make(map[string]typ.Type)
+		err := node.Args.Foreach(func(child gol.Node) error {
+			id, ok := child.(*gol.NodeIdentifier)
+			if !ok {
+				return gol.NodeErrorf(n, "infer: non-identifier in lambda args: %s", child.String())
+			}
+
+			frame[id.String()] = child.Type()
 			argTypes[i] = child.Type()
 			i++
 			return nil
 		})
+		if err != nil {
+			return 0, err
+		}
+
+		oldEnv := typeEnv
+		defer func() {
+			typeEnv = oldEnv
+		}()
+		typeEnv = typeEnv.WithFrame(frame)
 
 		childChanges, err := gb.infer(node.Body, typeEnv)
 		if err != nil {
