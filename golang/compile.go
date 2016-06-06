@@ -69,8 +69,8 @@ func CompileFile(filename string, outFilename string) error {
 }
 
 type GolangBackend struct {
-	parseTree gol.Node
-	//	topLevelDefns []string
+	parseTree     gol.Node
+	topLevelDefns []string
 }
 
 func NewGolangBackend(parseTree gol.Node) *GolangBackend {
@@ -225,22 +225,42 @@ func (gb *GolangBackend) compile(node gol.Node) (string, error) {
 }
 
 func (gb *GolangBackend) compileDefine(nd *gol.NodeDefine) (string, error) {
-	golangValue, err := gb.compile(nd.Value)
+	valueType, err := typ.Resolve(nd.Value.Type())
 	if err != nil {
 		return "", err
 	}
+	funcType, isFunc := valueType.(typ.Func)
 
-	symbolGolangType, err := golangStringForType(nd.Value.Type())
-	if err != nil {
-		return "", err
+	if isFunc {
+		lambda, ok := nd.Value.(*gol.NodeLambda)
+		if !ok {
+			return "", fmt.Errorf("Non-lambda [%T] with func type [%s]", nd.Value, funcType)
+		}
+		s, err := gb.compileAnonOrNamedLambda(lambda, nd.Symbol.String())
+		if err != nil {
+			return "", err
+		}
+		gb.saveTopLevelDefn(s)
+		return "", nil
+	} else {
+		// Not a function definition, use a local var
+		golangValue, err := gb.compile(nd.Value)
+		if err != nil {
+			return "", err
+		}
+
+		symbolGolangType, err := golangStringForType(nd.Value.Type())
+		if err != nil {
+			return "", err
+		}
+
+		s := gb.declareVar(nd.Symbol.String(), symbolGolangType)
+		s += fmt.Sprintf("%s = %s\n",
+			nd.Symbol.String(),
+			golangValue,
+		)
+		return s, nil
 	}
-
-	s := gb.declareVar(nd.Symbol.String(), symbolGolangType)
-	s += fmt.Sprintf("%s = %s\n",
-		nd.Symbol.String(),
-		golangValue,
-	)
-	return s, nil
 }
 
 func (gb *GolangBackend) declareVar(varname string, vartype string) string {
@@ -289,16 +309,16 @@ func (gb *GolangBackend) compileIf(ni *gol.NodeIf) (string, error) {
 }
 
 func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda) (string, error) {
+	return gb.compileAnonOrNamedLambda(nl, "")
+}
 
-	lambdaVarType, ok := nl.Type().(*typ.Var)
-	if !ok {
-		// Not an error if it's a functype, but we assign vars to all nodes....
-		return "", fmt.Errorf("Odd - not a var, instead a %T: %s\n", nl.Type(), nl.Type())
-	}
-	lambdaType, err := lambdaVarType.Lookup()
+func (gb *GolangBackend) compileAnonOrNamedLambda(nl *gol.NodeLambda, name string) (string, error) {
+
+	lambdaType, err := typ.Resolve(nl.Type())
 	if err != nil {
-		return "", fmt.Errorf("Can't look up lambda var: %s [%T]\n", lambdaVarType, lambdaVarType)
+		return "", fmt.Errorf("Can't resolve lambda var: %s [%T]\n", lambdaType, lambdaType)
 	}
+
 	funcType, ok := lambdaType.(typ.Func)
 	if !ok {
 		return "", fmt.Errorf("Lambda doesn't have function type: %s [%T]\n", nl.Type(), nl.Type())
@@ -328,7 +348,7 @@ func (gb *GolangBackend) compileLambda(nl *gol.NodeLambda) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s := fmt.Sprintf("func(%s) %s {", strings.Join(strArgs, ", "), golangRetType)
+	s := fmt.Sprintf("func %s(%s) %s {", name, strings.Join(strArgs, ", "), golangRetType)
 	body, err := gb.compile(nl.Body)
 	if err != nil {
 		return "", err
@@ -509,24 +529,20 @@ func (gb *GolangBackend) compileProgn(progn *gol.NodeProgn) (string, error) {
 	return strings.Join(lines, "\n"), nil
 }
 
-/*
 func (gb *GolangBackend) saveTopLevelDefn(s string) {
 	gb.topLevelDefns = append(gb.topLevelDefns, s)
 }
-*/
 
 func (gb *GolangBackend) compilePostamble() (string, error) {
 	buf := &bytes.Buffer{}
 
 	buf.WriteString("}\n")
-	/*
-		for _, s := range gb.topLevelDefns {
-			buf.WriteString("\n")
-			buf.WriteString(s)
+	for _, s := range gb.topLevelDefns {
+		buf.WriteString("\n")
+		buf.WriteString(s)
 
-			buf.WriteString("\n")
-		}
-	*/
+		buf.WriteString("\n")
+	}
 	return buf.String(), nil
 }
 

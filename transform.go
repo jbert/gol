@@ -150,7 +150,7 @@ func transformProgn(n *NodeList) (Node, error) {
 }
 
 func transformDefine(n *NodeList) (Node, error) {
-	if n.Len() < 3 {
+	if n.Len() != 3 {
 		return nil, NodeErrorf(n, "Bad define expression - wrong arity")
 	}
 
@@ -173,7 +173,8 @@ func transformDefine(n *NodeList) (Node, error) {
 	return &NodeDefine{
 		NodeList: n,
 		Symbol:   id,
-		Value:    makeProgn(children),
+		//		Value:    makeProgn(children),
+		Value: children.First(),
 	}, nil
 }
 

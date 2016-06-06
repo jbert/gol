@@ -182,3 +182,12 @@ func (v *Var) Unify(t Type) error {
 	}
 
 }
+
+func Resolve(t Type) (Type, error) {
+	tVar, isVar := t.(*Var)
+	if isVar {
+		return tVar.Lookup()
+	} else {
+		return t, nil
+	}
+}

@@ -129,8 +129,10 @@ func BasicTestCases() []TestCase {
 		{`(if (= 1 1 ) 3 4)`, "3", ""},
 
 		{`(define a 2) a`, "2", ""},
+		// 'a' re-defined
 		//		{`(define a 2) (define a 3) a`, "3", ""},
 
+		// "F defined and not used"
 		{`(define f (lambda (x) (+ 1 x))) (+ 1 3)`, "4", ""},
 		{`((lambda (x) (+ 1 x)) 3)`, "4", ""},
 
