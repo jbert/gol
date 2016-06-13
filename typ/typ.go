@@ -115,8 +115,8 @@ func (f Func) Unify(t Type) error {
 	}
 
 	if len(f.Args) != len(newFunc.Args) {
-		return fmt.Errorf("Can't unify: arg count mismatch %d != %d",
-			len(f.Args), len(newFunc.Args))
+		return fmt.Errorf("Can't unify: arg count mismatch %d != %d [%s] [%s]",
+			len(f.Args), len(newFunc.Args), f, newFunc)
 	}
 	for i := range f.Args {
 		err := f.Args[i].Unify(newFunc.Args[i])
