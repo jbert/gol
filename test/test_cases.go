@@ -155,6 +155,33 @@ func BasicTestCases() []TestCase {
 (f 3 4)
   `, "false", ""},
 		{`
+(define (f x)
+  (if (= x 0)
+      7
+      (f (- x 1))))
+
+(f 10)
+`, "7", ""},
+		{`
+(define (f x y)
+  (if (= x y)
+      7
+      (f (- x 1) y)))
+
+(f 10 6)
+`, "7", ""},
+		{`
+(define (f x y)
+  (if (= x y)
+      7
+      (f (- x 1) (+ 1 y))))
+
+(define (g x)
+	(f x 6))
+
+(g 10)
+`, "7", ""},
+		{`
 (define (fact-helper x res)
   (if (= x 0)
       res
