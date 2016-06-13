@@ -127,7 +127,7 @@ func (v *Var) endOfChain() (Type, error) {
 }
 
 func (v *Var) Unify(t Type) error {
-	log.Printf("Unify [%s] with [%s]\n", v.name, t)
+	log.Printf("Unify [%s] with [%s]\n", v, t)
 
 	// Find the end of v's chain
 	vEnd, err := v.endOfChain()
@@ -157,7 +157,7 @@ func (v *Var) Unify(t Type) error {
 			// They're the same! nothing to do
 		} else {
 			// We have two chains of vars. Link them
-			//log.Printf("StoreA %s => %s\n", vEndVar.name, tEndVar.name)
+			log.Printf("StoreA %s => %s\n", vEndVar, tEndVar.name)
 			symbolResolution[vEndVar.name] = tEndVar
 		}
 		return nil
@@ -165,14 +165,14 @@ func (v *Var) Unify(t Type) error {
 		if already, ok := symbolResolution[vEndVar.name]; ok {
 			panic(fmt.Sprintf("Storing over type [%s] for [%s]", already, vEndVar.name))
 		}
-		//log.Printf("StoreB %s => %s\n", vEndVar.name, tEnd)
+		log.Printf("StoreB %s => %s\n", vEndVar, tEnd)
 		symbolResolution[vEndVar.name] = tEnd
 		return nil
 	} else if tEndIsVar {
 		if already, ok := symbolResolution[tEndVar.name]; ok {
 			panic(fmt.Sprintf("Storing over type [%s] for [%s]", already, tEndVar.name))
 		}
-		//log.Printf("StoreC %s => %s\n", tEndVar.name, vEnd)
+		log.Printf("StoreC %s => %s\n", tEndVar, vEnd)
 		symbolResolution[tEndVar.name] = vEnd
 		return nil
 
@@ -181,6 +181,15 @@ func (v *Var) Unify(t Type) error {
 		return vEnd.Unify(tEnd)
 	}
 
+}
+
+func ResolveStr(t Type) string {
+	t2, err := Resolve(t)
+	if err != nil {
+		return "<undef>"
+	} else {
+		return t2.String()
+	}
 }
 
 func Resolve(t Type) (Type, error) {
