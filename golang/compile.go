@@ -338,6 +338,7 @@ func (gb *GolangBackend) compileAnonOrNamedLambda(nl *gol.NodeLambda, name strin
 
 		id := child.String()
 		strArgs[i] = fmt.Sprintf("%s %s", mangleIdentifier(id), golangType)
+		i++
 		return nil
 	})
 	if err != nil {
