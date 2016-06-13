@@ -349,7 +349,7 @@ func (gb *GolangBackend) compileAnonOrNamedLambda(nl *gol.NodeLambda, name strin
 	if err != nil {
 		return "", err
 	}
-	s := fmt.Sprintf("func %s(%s) %s {", name, strings.Join(strArgs, ", "), golangRetType)
+	s := fmt.Sprintf("func %s(%s) %s {", mangleIdentifier(name), strings.Join(strArgs, ", "), golangRetType)
 	body, err := gb.compile(nl.Body)
 	if err != nil {
 		return "", err
@@ -412,7 +412,9 @@ func (gb *GolangBackend) compileList(nl *gol.NodeList) (string, error) {
 func mangleIdentifier(s string) string {
 	s = strings.Replace(s, "+", "__PLUS__", -1)
 	s = strings.Replace(s, "-", "__MINUS__", -1)
+	s = strings.Replace(s, "*", "__TIMES__", -1)
 	s = strings.Replace(s, "=", "__EQUAL__", -1)
+
 	return s
 }
 
@@ -558,6 +560,15 @@ func (gb *GolangBackend) buildGo(goFilename string, outFilename string) error {
 
 func (gb *GolangBackend) standardLib() string {
 	return `
+func __TIMES__(args ...int64) int64 {
+	var prod int64
+	prod = 1
+	for _, n := range args {
+		prod *= n
+	}
+	return prod
+}
+
 func __PLUS__(args ...int64) int64 {
 	var sum int64
 	for _, n := range args {
@@ -643,6 +654,7 @@ func newDefaultTypeEnv() typ.Env {
 	f := typ.Frame{
 		"-":       typ.NewFunc(ints, typ.Int),
 		"+":       typ.NewFunc(ints, typ.Int),
+		"*":       typ.NewFunc(ints, typ.Int),
 		"=":       typ.NewFunc(ints, typ.Bool),
 		"display": typ.NewFunc(anys, typ.Void),
 		"void":    typ.NewFunc([]typ.Type{}, typ.Void),
