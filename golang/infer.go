@@ -120,7 +120,7 @@ func (gb *GolangBackend) inferUnwrappedError(n gol.Node, typeEnv typ.Env, depth 
 	case *gol.NodeList:
 		iprintf("nodelist\n")
 		if node.Len() == 0 {
-			return 0, fmt.Errorf("Eval of empty list")
+			return 0, fmt.Errorf("Empty application")
 		}
 
 		// What types are in the list?

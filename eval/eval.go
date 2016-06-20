@@ -242,7 +242,7 @@ func (e *Evaluator) evalList(nl *gol.NodeList) (gol.Node, error) {
 
 func (e *Evaluator) Apply(nl *gol.NodeList) (gol.Node, error) {
 	if nl.Len() == 0 {
-		return nil, gol.NodeErrorf(nl, "empty application")
+		return nil, gol.NodeErrorf(nl, "Empty application")
 	}
 	applicable, ok := nl.First().(NodeApplicable)
 	if !ok {

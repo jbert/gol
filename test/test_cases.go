@@ -55,7 +55,7 @@ func QuoteTestCases() []TestCase {
 
 func ErrorTestCases() []TestCase {
 	return []TestCase{
-		{"()", "", "empty application"},
+		{"()", "", "Empty application"},
 		{`(error "time to die")`, "", "time to die"},
 		{`(+ (error "foo") 1)`, "", "foo"},
 		{`(+ 1 (error "foo"))`, "", "foo"},
